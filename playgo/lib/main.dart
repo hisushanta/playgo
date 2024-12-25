@@ -76,10 +76,17 @@ class _GoBoardState extends State<GoBoard> {
   }
 
   void _captureStones(List<List<int>> group) {
-    for (var pos in group) {
-      board[pos[1]][pos[0]] = Stone.none;
-    }
+  for (var pos in group) {
+    board[pos[1]][pos[0]] = Stone.none;
   }
+  // Update the score for the capturing player
+  if (currentPlayer == Stone.black) {
+    blackScore += group.length;
+  } else {
+    whiteScore += group.length;
+  }
+}
+
 
   bool _isValidMove(int x, int y) {
     if (x < 0 || x >= widget.size || y < 0 || y >= widget.size || board[y][x] != Stone.none) return false;
