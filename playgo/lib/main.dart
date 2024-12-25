@@ -33,90 +33,78 @@ class _GoBoardState extends State<GoBoard> {
   }
 
   void _initializeBoard() {
-    board = List.generate(widget.size + 1, (_) => List.filled(widget.size + 1, Stone.none));
+    board = List.generate(widget.size, (_) => List.filled(widget.size, Stone.none));
   }
 
   Stone _getStone(int x, int y) {
-    if (x >= 0 && x <= widget.size && y >= 0 && y <= widget.size) {
+    if (x >= 0 && x < widget.size && y >= 0 && y < widget.size) {
       return board[y][x];
     }
     return Stone.none;
   }
 
-  bool _captureStones(int x, int y, Stone opponent) {
-    List<List<int>> visited = List.generate(widget.size + 1, (_) => List.filled(widget.size + 1, 0));
+  List<List<int>> _findGroup(int x, int y, Stone stone) {
     List<List<int>> group = [];
+    List<List<int>> visited = List.generate(widget.size, (_) => List.filled(widget.size, 0));
 
-    bool hasLiberty(int i, int j) {
-      if (i < 0 || i > widget.size || j < 0 || j > widget.size) return false;
-      return board[j][i] == Stone.none;
-    }
-
-    void findGroup(int i, int j) {
-      if (i < 0 || i > widget.size || j < 0 || j > widget.size || visited[j][i] == 1 || board[j][i] != opponent) return;
+    void dfs(int i, int j) {
+      if (i < 0 || i >= widget.size || j < 0 || j >= widget.size || visited[j][i] == 1 || board[j][i] != stone) return;
       visited[j][i] = 1;
       group.add([i, j]);
       for (var dir in [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
-        findGroup(i + dir[0], j + dir[1]);
+        dfs(i + dir[0], j + dir[1]);
       }
     }
 
-    findGroup(x, y);
+    dfs(x, y);
+    return group;
+  }
 
-    bool captured = true;
+  bool _hasLiberty(List<List<int>> group) {
     for (var pos in group) {
-      if (hasLiberty(pos[0] + 1, pos[1]) || hasLiberty(pos[0] - 1, pos[1]) || hasLiberty(pos[0], pos[1] + 1) || hasLiberty(pos[0], pos[1] - 1)) {
-        captured = false;
-        break;
+      for (var dir in [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+        int nx = pos[0] + dir[0];
+        int ny = pos[1] + dir[1];
+        if (nx >= 0 && nx < widget.size && ny >= 0 && ny < widget.size && board[ny][nx] == Stone.none) {
+          return true;
+        }
       }
-    }
-
-    if (captured) {
-      for (var pos in group) {
-        board[pos[1]][pos[0]] = Stone.none;
-      }
-      return true;
     }
     return false;
   }
 
-  bool _isSuicide(int x, int y, Stone stone) {
-    Stone oldStone = board[y][x];
-    board[y][x] = stone;
-    bool suicide = true;
+  void _captureStones(List<List<int>> group) {
+    for (var pos in group) {
+      board[pos[1]][pos[0]] = Stone.none;
+    }
+  }
+
+  bool _isValidMove(int x, int y) {
+    if (x < 0 || x >= widget.size || y < 0 || y >= widget.size || board[y][x] != Stone.none) return false;
+
+    board[y][x] = currentPlayer;
+    var group = _findGroup(x, y, currentPlayer);
+    if (_hasLiberty(group)) {
+      board[y][x] = Stone.none;
+      return true;
+    }
+
+    Stone opponent = currentPlayer == Stone.black ? Stone.white : Stone.black;
+    bool valid = false;
     for (var dir in [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
-      int nx = x + dir[0], ny = y + dir[1];
-      if (nx >= 0 && nx <= widget.size && ny >= 0 && ny <= widget.size) {
-        if (board[ny][nx] == Stone.none) {
-          suicide = false;
-          break;
-        } else if (board[ny][nx] != stone && _captureStones(nx, ny, stone == Stone.black ? Stone.white : Stone.black)) {
-          suicide = false;
+      int nx = x + dir[0];
+      int ny = y + dir[1];
+      if (nx >= 0 && nx < widget.size && ny >= 0 && ny < widget.size && board[ny][nx] == opponent) {
+        var opponentGroup = _findGroup(nx, ny, opponent);
+        if (!_hasLiberty(opponentGroup)) {
+          valid = true;
           break;
         }
       }
     }
-    board[y][x] = oldStone;
-    return suicide;
-  }
 
-  bool _isKo(int x, int y, Stone stone) {
-    if (lastMove != null && lastMove!.x == x && lastMove!.y == y) {
-      Stone tempStone = board[y][x];
-      board[y][x] = stone;
-      bool wouldRecapture = _captureStones(lastMove!.x, lastMove!.y, stone == Stone.black ? Stone.white : Stone.black);
-      board[y][x] = tempStone;
-      return wouldRecapture;
-    }
-    return false;
-  }
-
-  bool _isValidMove(int x, int y) {
-    if (x < 0 || x > widget.size || y < 0 || y > widget.size) return false;  // Out of bounds
-    if (_getStone(x, y) != Stone.none) return false;
-    if (_isKo(x, y, currentPlayer)) return false;
-    if (_isSuicide(x, y, currentPlayer)) return false;
-    return true;
+    board[y][x] = Stone.none;
+    return valid;
   }
 
   void _placeStone(int x, int y) {
@@ -125,40 +113,76 @@ class _GoBoardState extends State<GoBoard> {
         board[y][x] = currentPlayer;
         moves.add(Move(x, y, currentPlayer));
 
-        Stone opponent = (currentPlayer == Stone.black) ? Stone.white : Stone.black;
-        bool captured = false;
-
-        for (var dir in [
-          [-1, 0], // Left
-          [1, 0],  // Right
-          [0, -1], // Up
-          [0, 1]   // Down
-        ]) {
+        Stone opponent = currentPlayer == Stone.black ? Stone.white : Stone.black;
+        for (var dir in [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
           int nx = x + dir[0];
           int ny = y + dir[1];
-          if (nx >= 0 && nx <= widget.size && ny >= 0 && ny <= widget.size) {
-            captured = captured || _captureStones(nx, ny, opponent);
+          if (nx >= 0 && nx < widget.size && ny >= 0 && ny < widget.size && board[ny][nx] == opponent) {
+            var opponentGroup = _findGroup(nx, ny, opponent);
+            if (!_hasLiberty(opponentGroup)) {
+              _captureStones(opponentGroup);
+            }
           }
         }
 
-        lastMove = Move(x, y, currentPlayer);
-        currentPlayer = (currentPlayer == Stone.black) ? Stone.white : Stone.black;
-        _calculateScore();
+        currentPlayer = currentPlayer == Stone.black ? Stone.white : Stone.black;
       });
     }
+  }
+
+  void _endGame() {
+    setState(() {
+      gameOver = true;
+      _calculateScore();
+    });
   }
 
   void _calculateScore() {
     blackScore = 0;
     whiteScore = 0;
 
-    for (int x = 0; x <= widget.size; x++) {
-      for (int y = 0; y <= widget.size; y++) {
-        if (board[y][x] == Stone.black) {
-          blackScore++;
-        } else if (board[y][x] == Stone.white) {
-          whiteScore++;
+    List<List<bool>> visited = List.generate(widget.size, (_) => List.filled(widget.size, false));
+
+    for (int y = 0; y < widget.size; y++) {
+      for (int x = 0; x < widget.size; x++) {
+        if (visited[y][x] || board[y][x] != Stone.none) continue;
+
+        List<List<int>> territory = [];
+        Stone? controllingStone;
+
+        void dfs(int i, int j) {
+          if (i < 0 || i >= widget.size || j < 0 || j >= widget.size || visited[j][i]) return;
+          visited[j][i] = true;
+
+          if (board[j][i] == Stone.none) {
+            territory.add([i, j]);
+          } else {
+            if (controllingStone == null) {
+              controllingStone = board[j][i];
+            } else if (controllingStone != board[j][i]) {
+              controllingStone = null;
+            }
+          }
+
+          for (var dir in [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+            dfs(i + dir[0], j + dir[1]);
+          }
         }
+
+        dfs(x, y);
+
+        if (controllingStone == Stone.black) {
+          blackScore += territory.length;
+        } else if (controllingStone == Stone.white) {
+          whiteScore += territory.length;
+        }
+      }
+    }
+
+    for (int y = 0; y < widget.size; y++) {
+      for (int x = 0; x < widget.size; x++) {
+        if (board[y][x] == Stone.black) blackScore++;
+        if (board[y][x] == Stone.white) whiteScore++;
       }
     }
   }
@@ -168,6 +192,12 @@ class _GoBoardState extends State<GoBoard> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Go Game'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.flag),
+            onPressed: _endGame,
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -178,32 +208,21 @@ class _GoBoardState extends State<GoBoard> {
           Expanded(
             child: GridView.builder(
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: widget.size + 1,
+                crossAxisCount: widget.size,
               ),
-              itemCount: (widget.size + 1) * (widget.size + 1),
+              itemCount: widget.size * widget.size,
               itemBuilder: (context, index) {
-                int x = index % (widget.size + 1);
-                int y = index ~/ (widget.size + 1);
+                int x = index % widget.size;
+                int y = index ~/ widget.size;
                 return GestureDetector(
                   onTap: () => _placeStone(x, y),
-                  child: Stack(
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey),
-                        ),
-                      ),
-                      if (x <= widget.size && y <= widget.size) 
-                        Positioned(
-                          left: 0,
-                          top: 0,
-                          right: 0,
-                          bottom: 0,
-                          child: Center(
-                            child: _buildStone(board[y][x]),
-                          ),
-                        ),
-                    ],
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey),
+                    ),
+                    child: Center(
+                      child: _buildStone(board[y][x]),
+                    ),
                   ),
                 );
               },
@@ -218,41 +237,6 @@ class _GoBoardState extends State<GoBoard> {
                 Text("White: $whiteScore"),
               ],
             ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              _calculateScore();
-              setState(() {
-                gameOver = true;
-              });
-              showDialog(
-                context: context,
-                builder: (context) {
-                  return AlertDialog(
-                    title: const Text("Game Over"),
-                    content: Text("Black: $blackScore, White: $whiteScore"),
-                    actions: [
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          setState(() {
-                            _initializeBoard();
-                            currentPlayer = Stone.black;
-                            moves.clear();
-                            lastMove = null;
-                            blackScore = 0;
-                            whiteScore = 0;
-                            gameOver = false;
-                          });
-                        },
-                        child: const Text("Play Again"),
-                      )
-                    ],
-                  );
-                },
-              );
-            },
-            child: const Text("End Game"),
           ),
         ],
       ),
