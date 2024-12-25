@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 
 enum Stone { none, black, white }
@@ -32,6 +33,7 @@ class _GoBoardState extends State<GoBoard> {
     _initializeBoard();
   }
 
+  @override
   void _initializeBoard() {
     board = List.generate(widget.size, (_) => List.filled(widget.size, Stone.none));
   }
@@ -186,6 +188,13 @@ class _GoBoardState extends State<GoBoard> {
       }
     }
   }
+   double _getIntersectionX(int x, double cellSize, double padding) {
+    return x * cellSize + padding;
+  }
+
+  double _getIntersectionY(int y, double cellSize, double padding) {
+    return y * cellSize + padding;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -199,64 +208,156 @@ class _GoBoardState extends State<GoBoard> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text("Current Turn: ${currentPlayer == Stone.black ? 'Black' : 'White'}"),
-          ),
-          Expanded(
-            child: GridView.builder(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: widget.size,
+      body: LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          double boardSize = constraints.maxWidth > constraints.maxHeight
+              ? constraints.maxHeight
+              : constraints.maxWidth;
+
+          double padding = boardSize * 0.05;
+          boardSize -= padding * 2;
+
+          double cellSize = boardSize / (widget.size - 1);
+          double stoneSize = cellSize * 0.8;
+
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text("Current Turn: ${currentPlayer == Stone.black ? 'Black' : 'White'}"),
               ),
-              itemCount: widget.size * widget.size,
-              itemBuilder: (context, index) {
-                int x = index % widget.size;
-                int y = index ~/ widget.size;
-                return GestureDetector(
-                  onTap: () => _placeStone(x, y),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey),
-                    ),
-                    child: Center(
-                      child: _buildStone(board[y][x]),
-                    ),
+              Center(
+                child: SizedBox(
+                  width: boardSize + padding * 2,
+                  height: boardSize + padding * 2,
+                  child: Stack(
+                    children: [
+                      Container( // Background color for the board
+                        width: boardSize + padding * 2,
+                        height: boardSize + padding * 2,
+                        color: const Color(0xFFD3B07C), // Light brown color
+                      ),
+                      // Draw Grid Lines
+                      for (int i = 0; i < widget.size; i++)
+                        Positioned(
+                          top: _getIntersectionY(i, cellSize, padding) - 0.5,
+                          left: padding,
+                          width: boardSize,
+                          child: Container(
+                            height: 1,
+                            color: Colors.black, // Black grid lines
+                          ),
+                        ),
+                      for (int i = 0; i < widget.size; i++)
+                        Positioned(
+                          left: _getIntersectionX(i, cellSize, padding) - 0.5,
+                          top: padding,
+                          height: boardSize,
+                          child: Container(
+                            width: 1,
+                            color: Colors.black, // Black grid lines
+                          ),
+                        ),
+                      // Draw Hoshi (Star Points)
+                      if (widget.size == 9 || widget.size == 13 || widget.size == 19)
+                        ..._buildHoshi(cellSize, padding), //Call the function for draw points
+
+                      // Place Stones
+                      for (int y = 0; y < widget.size; y++)
+                        for (int x = 0; x < widget.size; x++)
+                          if (board[y][x] != Stone.none)
+                            Positioned(
+                              top: _getIntersectionY(y, cellSize, padding) - stoneSize / 2,
+                              left: _getIntersectionX(x, cellSize, padding) - stoneSize / 2,
+                              child: _buildStone(board[y][x], stoneSize),
+                            ),
+                      GridView.builder(
+                        physics: NeverScrollableScrollPhysics(),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: widget.size,
+                        ),
+                        itemCount: widget.size * widget.size,
+                        itemBuilder: (context, index) {
+                          int x = index % widget.size;
+                          int y = index ~/ widget.size;
+                          return GestureDetector(
+                            onTap: () => _placeStone(x, y),
+                            child: Container(
+                              color: Colors.transparent,
+                            ),
+                          );
+                        },
+                      ),
+                    ],
                   ),
-                );
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                Text("Black: $blackScore"),
-                Text("White: $whiteScore"),
-              ],
-            ),
-          ),
-        ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    Text("Black: $blackScore"),
+                    Text("White: $whiteScore"),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 
-  Widget _buildStone(Stone stone) {
+  List<Widget> _buildHoshi(double cellSize, double padding) {
+    List<Widget> hoshi = [];
+    List<List<int>> points;
+
+    if (widget.size == 9) {
+      points = [[2, 2], [6, 2], [2, 6], [6, 6], [4, 4]];
+    } else if (widget.size == 13) {
+      points = [[3, 3], [9, 3], [3, 9], [9, 9], [6, 6]];
+    } else if (widget.size == 19) {
+      points = [[3, 3], [9, 3], [15, 3], [3, 9], [9, 9], [15, 9], [3, 15], [9, 15], [15, 15]];
+    } else {
+      return hoshi; // No hoshi for other board sizes
+    }
+
+    for (var point in points) {
+      hoshi.add(
+        Positioned(
+          left: _getIntersectionX(point[0], cellSize, padding) - 3,
+          top: _getIntersectionY(point[1], cellSize, padding) - 3,
+          child: Container(
+            width: 6,
+            height: 6,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.black,
+            ),
+          ),
+        ),
+      );
+    }
+    return hoshi;
+  }
+
+
+
+  Widget _buildStone(Stone stone, double size) {
     if (stone == Stone.black) {
       return Container(
-        width: 20,
-        height: 20,
-        decoration: BoxDecoration(
+        width: size,
+        height: size,
+        decoration: const BoxDecoration(
           shape: BoxShape.circle,
           color: Colors.black,
         ),
       );
     } else if (stone == Stone.white) {
       return Container(
-        width: 20,
-        height: 20,
+        width: size,
+        height: size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: Colors.white,
@@ -270,6 +371,6 @@ class _GoBoardState extends State<GoBoard> {
 
 void main() {
   runApp(const MaterialApp(
-    home: GoBoard(size: 9),
+    home: GoBoard(size: 19),
   ));
 }
