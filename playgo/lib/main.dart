@@ -1,272 +1,141 @@
+import 'package:playgo/firebase_options.dart';
 import 'package:flutter/material.dart';
-import 'playgame.dart';
-void main() {
-  runApp(MyApp());
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'pages/home.dart';
+import 'pages/info.dart';
+import '../pages/login_screen.dart';
+import '../pages/signup_screen.dart';
+
+ItemInfo? info;
+int oneTime = 0;
+
+void main() async {
+ WidgetsFlutterBinding.ensureInitialized();
+ await Firebase.initializeApp(
+   options: DefaultFirebaseOptions.currentPlatform,
+ );  
+
+  runApp(
+
+    const MyApp());
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: GoGameHomePage(),
-      debugShowCheckedModeBanner: false,
+      debugShowCheckedModeBanner: false, // Remove the debug banner
+      home: MyHomePage(), 
     );
   }
 }
 
-class GoGameHomePage extends StatelessWidget {
+class MyHomePage extends StatefulWidget {
+  @override
+  _MyHomePageState createState() => _MyHomePageState();
+}
+
+class _MyHomePageState extends State<MyHomePage> {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[200],
-      appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 47, 46, 46),
-        elevation: 0,
-        leading: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Icon(Icons.person_outline_outlined, color: Colors.white),
-        ),
-        title: Row(
+    return StreamBuilder<User?>(
+      stream: _auth.authStateChanges(),
+      builder: (context, snapshot) {
+        if (snapshot.hasData){
+          info = ItemInfo(snapshot.data!.uid);  
+          return Home();
+        }
+        else{
+          return Scaffold(
+      body: Stack(
+        children: [
+          // Option 2: Setting Image height to full (with aspect ratio)
+          Image.asset(
+            'assets/mainPage.png',
+            fit: BoxFit.fill,
+            height: double.infinity,
+            width: double.infinity
+          ),
+          
+          Center( 
+          child: Column(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            SizedBox(width: 16),
-            Icon(Icons.currency_rupee, color: Colors.white),
-            Text(
-              '100',
-              style: TextStyle(color: Colors.white),
-            ),
-            SizedBox(width: 16),
-            CircleAvatar(
-              backgroundColor: Colors.white,
-              radius: 14,
-              child: Icon(Icons.add, color: Colors.black, size: 18),
-            ),
-          ],
-        ),
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
+           const SizedBox(height: 20),
+            Padding(
+              padding: const EdgeInsets.all(2.0),
               child: Column(
                 children: [
-                  // Top Section
-                  Container(
-                    padding: EdgeInsets.symmetric(vertical: 20),
-                    decoration: BoxDecoration(
-                      color: Colors.black,
-                      borderRadius: BorderRadius.only(
-                        bottomLeft: Radius.circular(20),
-                        bottomRight: Radius.circular(20),
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        Image.asset(
-                          'assets/goBoard.jpg', // Placeholder for the Go board image
-                          width: double.maxFinite, 
-                        ),
-                        Text(
-                          "Go Game",
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          "The Ancient Strategy Game",
-                          style: TextStyle(color: Colors.grey[400]),
-                        ),
-                        SizedBox(height: 16),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          onPressed: () {},
-                          child: GestureDetector(
-                            child:Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 40, vertical: 10),
-                            child: Text(
-                              "Start Match",
-                              style: TextStyle(color: Colors.black, fontSize: 18),
-                            ),
-                          ),
-                          onTap:() {
-                            Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const GoBoard(size: 19)),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const LoginScreen()),
                       );
-                          },)
-                        ),
-                      ],
-                    ),
-                  ),
-                   // Tournament Banner
-                  Padding(
-                    padding: EdgeInsets.symmetric(vertical: 2,horizontal: 16),
-                    child: GestureDetector( 
-                      child: Card(
-                      elevation: 5,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: Container(
-                        padding: EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [const Color.fromARGB(255, 48, 48, 47), const Color.fromARGB(255, 129, 52, 252)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Two Player Game",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(height: 8),
-                            Row(
-                              children: [
-                                Text(
-                                  "Entry: Free",
-                                  style: TextStyle(color: Colors.white70),
-                                ),
-                                Spacer(),
-                                Text(
-                                  "Try It Your Family",
-                                  style: TextStyle(color: Colors.white70),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    onTap: (){
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const GoBoard(size: 19)));
                     },
-                    ),
-                  ),
-                  // Tournament Banner
-                  Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Card(
-                      elevation: 5,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color.fromARGB(255, 240, 99, 99),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
+                        borderRadius: BorderRadius.circular(20),
                       ),
-                      child: Container(
-                        padding: EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [Colors.orange, Colors.red],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Go Masters Tournament",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(height: 8),
-                            Row(
-                              children: [
-                                Text(
-                                  "Entry: 10 Rupess",
-                                  style: TextStyle(color: Colors.white70),
-                                ),
-                                Spacer(),
-                                Text(
-                                  "Closes in 03d 05h",
-                                  style: TextStyle(color: Colors.white70),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
+                    ),
+                    child: const Padding(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      child: Text(
+                        'LOG IN',
+                        style: TextStyle(fontSize: 18, color: Colors.white),
                       ),
                     ),
                   ),
-
-                  // Rules Update Banner
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: Card(
-                      elevation: 3,
+                  
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2.0,horizontal: 2.0),
+              child: Column(
+                children: [
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const SignUpScreen()),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
+                        borderRadius: BorderRadius.circular(20),
                       ),
-                      child: Container(
-                        padding: EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.black,
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.rule, color: Colors.white, size: 28),
-                            SizedBox(width: 16),
-                            Expanded(
-                              child: Text(
-                                "Learn Go Rules\nEverything you need to know about the game",
-                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          ],
-                        ),
+                    ),
+                    child: const Padding(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      child: Text(
+                        'SIGN UP',
+                        style: TextStyle(fontSize: 18, color: Colors.white),
                       ),
                     ),
                   ),
                 ],
               ),
             ),
+          ],
           ),
-
-          // Bottom Navigation
-          BottomNavigationBar(
-            selectedItemColor: Colors.black,
-            unselectedItemColor: Colors.grey,
-            showSelectedLabels: true,
-            showUnselectedLabels: true,
-            items: [
-              BottomNavigationBarItem(
-                icon: Icon(Icons.home),
-                label: "Home",
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.school),
-                label: "Learn",
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.tour_outlined),
-                label: "Play",
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.person),
-                label: "Profile",
-              ),
-            ],
-          ),
-        ],
+          ),    
+        ],  
       ),
     );
+        }
+      },
+    );
+
   }
 }
+
