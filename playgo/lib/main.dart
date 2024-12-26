@@ -106,7 +106,58 @@ class GoGameHomePage extends StatelessWidget {
                       ],
                     ),
                   ),
-
+                   // Tournament Banner
+                  Padding(
+                    padding: EdgeInsets.symmetric(vertical: 2,horizontal: 16),
+                    child: GestureDetector( 
+                      child: Card(
+                      elevation: 5,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: Container(
+                        padding: EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [const Color.fromARGB(255, 48, 48, 47), const Color.fromARGB(255, 129, 52, 252)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Two Player Game",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Text(
+                                  "Entry: Free",
+                                  style: TextStyle(color: Colors.white70),
+                                ),
+                                Spacer(),
+                                Text(
+                                  "Try It Your Family",
+                                  style: TextStyle(color: Colors.white70),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    onTap: (){
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const GoBoard(size: 19)));
+                    },
+                    ),
+                  ),
                   // Tournament Banner
                   Padding(
                     padding: EdgeInsets.all(16),
@@ -139,7 +190,7 @@ class GoGameHomePage extends StatelessWidget {
                             Row(
                               children: [
                                 Text(
-                                  "Entry: 10 Tokens",
+                                  "Entry: 10 Rupess",
                                   style: TextStyle(color: Colors.white70),
                                 ),
                                 Spacer(),
