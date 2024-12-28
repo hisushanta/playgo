@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "378299094530",
+    "project_id": "playgo-bcc8b",
+    "storage_bucket": "playgo-bcc8b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:378299094530:android:0d14651d9404f0370ef91b",
+        "android_client_info": {
+          "package_name": "playgo.com"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDyAZxEXBcDW3r0ZYn8wEjkd-4zsj2kL3w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
