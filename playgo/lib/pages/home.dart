@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:playgo/main.dart';
 import 'playgame.dart';
 import 'about_pages.dart';
+import 'fund_page.dart';
+import 'tournament_page.dart';
 
 final userId = FirebaseAuth.instance.currentUser!.uid;
 
@@ -105,7 +107,8 @@ class GoGameHomePage extends StatelessWidget {
               Text("PlayGo",style: TextStyle(color: Colors.white,fontStyle: FontStyle.italic,fontWeight: FontWeight.bold),)
             ],
           ),
-          Row(
+          GestureDetector(
+            child: Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             SizedBox(width: 16),
@@ -122,6 +125,10 @@ class GoGameHomePage extends StatelessWidget {
             ),
           ],
         ),
+        onTap: (){
+          Navigator.push(context, MaterialPageRoute(builder: (context) =>  AddCashPage()));
+        },
+          ),
           ],
         ),
       ),
@@ -171,7 +178,7 @@ class GoGameHomePage extends StatelessWidget {
                           onPressed: () {
                             Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => const GoBoard(size: 19)),);
+                            MaterialPageRoute(builder: (context) =>  GameTournamentPage()),);
                           },
                           child: Padding(
                             padding: EdgeInsets.symmetric(horizontal: 40, vertical: 10),
