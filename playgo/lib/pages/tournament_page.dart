@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:playgo/main.dart';
 import 'fund_page.dart';
+import 'home.dart';
 
 class TournamentPage extends StatefulWidget {
   @override
@@ -155,21 +156,20 @@ class GameTournamentPage extends State<TournamentPage>{
             ),
 
             // Tournament List
-            ListView.builder(
-              physics: NeverScrollableScrollPhysics(),
-              shrinkWrap: true,
-              itemCount: 4,
-              itemBuilder: (context, index) => buildTournamentTile(index),
-            ),
+              ListView.builder(
+                  physics: NeverScrollableScrollPhysics(),
+                  shrinkWrap: true,
+                  itemCount: info!.itemInfo[userId]!.length,
+                  itemBuilder: (context, index) => buildTournamentTile(info!.itemInfo[userId]![index][0],info!.itemInfo[userId]![index][1],
+                                                                      info!.itemInfo[userId]![index][2]),
+                )
           ],
         ),
       ),
     );
   }
 
-  Widget buildTournamentTile(int index) {
-    final prizePools = ['₹8.5', '₹1.7', '₹17', '₹20'];
-    final entries = ['₹5', '₹1', '₹10', '₹15'];
+  Widget buildTournamentTile(String entryPrice,String prizePools,String category) {
 
     return Padding(
       padding: const EdgeInsets.all(8.0),
@@ -188,7 +188,7 @@ class GameTournamentPage extends State<TournamentPage>{
                 children: [
                   Row(
                     children: [
-                      Text('Regular', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+                      Text(category, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
                       SizedBox(width: 8),
                       Icon(Icons.timer, size: 16, color: Colors.amber),
                     ],
@@ -207,7 +207,7 @@ class GameTournamentPage extends State<TournamentPage>{
                       Row(
                         children: [
                           Text(
-                            prizePools[index],
+                            prizePools,
                             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                           ),
                           Icon(Icons.arrow_drop_down, color: Colors.black),
@@ -230,7 +230,7 @@ class GameTournamentPage extends State<TournamentPage>{
                           ),
                         ),
                         child: Text(
-                          entries[index],
+                          entryPrice,
                           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                         ),
                       ),
