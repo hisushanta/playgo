@@ -178,7 +178,7 @@ class GoGameHomePage extends StatelessWidget {
                           onPressed: () {
                             Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) =>  GameTournamentPage()),);
+                            MaterialPageRoute(builder: (context) =>  TournamentPage()),);
                           },
                           child: Padding(
                             padding: EdgeInsets.symmetric(horizontal: 40, vertical: 10),

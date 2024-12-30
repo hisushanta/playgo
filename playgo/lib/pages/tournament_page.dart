@@ -2,7 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:playgo/main.dart';
 import 'fund_page.dart';
 
-class GameTournamentPage extends StatelessWidget {
+class TournamentPage extends StatefulWidget {
+  @override
+  GameTournamentPage createState() => GameTournamentPage();
+}
+class GameTournamentPage extends State<TournamentPage>{
+
+  Color allColor =  Color.fromARGB(255, 241, 239, 239);
+  Color regularColor =  Color.fromARGB(255, 241, 239, 239);
+  bool isallCheck = false;
+  bool isregularCheck = false;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -45,26 +54,96 @@ class GameTournamentPage extends StatelessWidget {
             // Filters
             Padding(
               padding: const EdgeInsets.all(16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      Icon(Icons.filter_list, color: Colors.grey),
-                      SizedBox(width: 8),
-                      Text('Filter', style: TextStyle(fontWeight: FontWeight.bold)),
+                      FilterChip(
+                            label: Text('Clear All', style: TextStyle(color: Colors.red),),
+                            backgroundColor: Colors.white,
+                            onSelected: (val) {
+                              setState(() {
+                               isallCheck = false;
+                                isregularCheck = false;
+                                allColor = const Color.fromARGB(255, 241, 239, 239);
+                                regularColor = const Color.fromARGB(255, 241, 239, 239);
+                              });
+                            },
+                          ),
                     ],
                   ),
+                  SizedBox(height: 16),
+                  // Sort by Price
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      FilterChip(label: Text('All'), onSelected: (val) {}),
-                      SizedBox(width: 8),
-                      FilterChip(label: Text('Regular'), onSelected: (val) {}),
+                      DropdownButton<String>(
+                        hint: Text("Sort by Price"),
+                        value: null,
+                        items: [
+                          DropdownMenuItem(
+                            value: "low_to_high",
+                            child: Text("Price: Low to High"),
+                          ),
+                          DropdownMenuItem(
+                            value: "high_to_low",
+                            child: Text("Price: High to Low"),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          // Logic for sorting based on selected value
+                          if (value == "low_to_high") {
+                            // Sort by low to high
+                          } else if (value == "high_to_low") {
+                            // Sort by high to low
+                          }
+                        },
+                      ),
+                      // Game Modes
+                      Row(
+                        children: [
+                          FilterChip(
+                            label: Text('All'),
+                            backgroundColor: allColor,
+                            onSelected: (val) {
+                              setState(() {
+                                if (!isallCheck) {
+                                  allColor = Color.fromARGB(255, 247, 255, 16);
+                                  isallCheck = true;
+                                } else {
+                                  allColor = Color.fromARGB(255, 241, 239, 239);
+                                  isallCheck = false;
+                                }
+                              });
+                            },
+                          ),
+                          SizedBox(width: 8),
+                          FilterChip(
+                            label: Text('Regular'),
+                            backgroundColor: regularColor,
+                            onSelected: (val) {
+                              setState(() {
+                                if (!isregularCheck) {
+                                  regularColor = const Color.fromARGB(255, 247, 255, 16);
+                                  isregularCheck = true;
+                                } else {
+                                  regularColor = Color.fromARGB(255, 241, 239, 239);
+                                  isregularCheck = false;
+                                }
+                              });
+                            },
+                          ),
+                        
+                        ],
+                      ),
                     ],
                   ),
                 ],
               ),
             ),
+
 
             // Recommended Tournaments Header
             Padding(
