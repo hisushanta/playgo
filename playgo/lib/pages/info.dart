@@ -33,15 +33,14 @@ class ItemInfo{
     }
 
   Future<void> _loadDataFromFirestore() async {
-    // if (uuid != null) {
-    //   var data = await _firestore.collection('Item').doc('lottlo').get();
-    //   var baseItem = data.data()!['item'];
-    //   List<List> itemStore = [];
-    //   for (var key in baseItem.keys){
-    //     itemStore.add(baseItem[key]);
-    //   }
-    //   itemInfo[uuid!] = itemStore;
-
+    if (uuid != null) {
+      var data = await _firestore.collection('match').doc('collection').get();
+      var baseItem = data.data()!['match'];
+      List<List> itemStore = [];
+      for (var key in baseItem.keys){
+        itemStore.add(baseItem[key]);
+      }
+      itemInfo[uuid!] = itemStore;
     //   // Categories Store
     //   var cdata = await _firestore.collection("Item").doc("lottlo").get();
     //   var baseCategory = cdata.data()!['categories'];
@@ -88,7 +87,7 @@ class ItemInfo{
             
     //       }
     //       orderActiveStatus[uuid!] = damOrder;
-    //     }
+        }
     
     // Load user profile
     var userProfileData = await _firestore.collection('users').doc(uuid).get();
@@ -158,7 +157,15 @@ class ItemInfo{
   return false;
  }
   void _setupListeners() {
-    // if (uuid != null) {
+    if (uuid != null) {
+      _firestore.collection('match').doc('collection').snapshots().listen((snapshot){
+        var item = snapshot.data()!['match'];
+        List<List> itemStore = [];
+        for (var key in item.keys){
+          itemStore.add(item[key]);
+        }
+        itemInfo[uuid!] = itemStore;
+      });
     //   // Listen to alert changes
     //   _firestore.collection('users').doc(uuid).collection('order').snapshots().listen((snapshot) {
     //     var item = snapshot.docs.map((doc) {
@@ -175,7 +182,7 @@ class ItemInfo{
     //       orderActiveStatus[uuid!] = damOrder;
     //     }
     //   });
-
+    }
     //   // love to load
     //   _firestore.collection('users').doc(uuid).collection('love').snapshots().listen((snapshot){
     //       var baseLoveData = snapshot.docs.map((doc){
