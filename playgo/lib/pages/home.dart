@@ -5,6 +5,7 @@ import 'playgame.dart';
 import 'about_pages.dart';
 import 'fund_page.dart';
 import 'tournament_page.dart';
+import 'aiPlay.dart';
 
 final userId = FirebaseAuth.instance.currentUser!.uid;
 
@@ -241,6 +242,58 @@ class GoGameHomePage extends StatelessWidget {
                     ),
                     onTap: (){
                       Navigator.push(context, MaterialPageRoute(builder: (context) => const GoBoard(size: 19)));
+                    },
+                    ),
+                  ),
+                   // Tournament Banner
+                  Padding(
+                    padding: EdgeInsets.symmetric(vertical: 2,horizontal: 16),
+                    child: GestureDetector( 
+                      child: Card(
+                      elevation: 5,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: Container(
+                        padding: EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [const Color.fromARGB(255, 247, 63, 12), const Color.fromARGB(255, 36, 35, 37)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Single Player Game",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Text(
+                                  "Entry: Free",
+                                  style: TextStyle(color: Colors.white70),
+                                ),
+                                Spacer(),
+                                Text(
+                                  "Test Your Skill.",
+                                  style: TextStyle(color: Colors.white70),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    onTap: (){
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const GoAIBoard(size: 19)));
                     },
                     ),
                   ),
