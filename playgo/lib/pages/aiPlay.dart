@@ -42,6 +42,16 @@ class _GoAIBoardState extends State<GoAIBoard> {
   void _makeAiMove() {
     if (gameOver) return; // Don't make a move if the game is over
 
+    // First, check if there are any capturing moves
+    List<MoveAI> capturingMoves = _getCapturingMoves(board, aiPlayer);
+    if (capturingMoves.isNotEmpty) {
+      // Choose a random capturing move to make the AI less predictable
+      MoveAI captureMove = capturingMoves[random.nextInt(capturingMoves.length)];
+      _placeStone(captureMove.x, captureMove.y);
+      return;
+    }
+
+    // If no capturing moves, find the best strategic move
     MoveAI? bestMove = _findBestMove(board, aiPlayer, depth: 3); // Depth-limited search
     if (bestMove != null) {
       _placeStone(bestMove.x, bestMove.y);
@@ -49,6 +59,41 @@ class _GoAIBoardState extends State<GoAIBoard> {
       // If no valid move is found, end the game
       _endGame();
     }
+  }
+
+  List<MoveAI> _getCapturingMoves(List<List<Stone>> boardState, Stone player) {
+    List<MoveAI> capturingMoves = [];
+    for (int y = 0; y < widget.size; y++) {
+      for (int x = 0; x < widget.size; x++) {
+        if (_isValidMove(x, y, boardState, player)) {
+          // Temporarily place the stone
+          boardState[y][x] = player;
+
+          // Check if this move captures any opponent stones
+          Stone opponent = player == Stone.black ? Stone.white : Stone.black;
+          bool captures = false;
+          for (var dir in [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+            int nx = x + dir[0];
+            int ny = y + dir[1];
+            if (nx >= 0 && nx < widget.size && ny >= 0 && ny < widget.size && boardState[ny][nx] == opponent) {
+              var opponentGroup = _findGroup(nx, ny, opponent, boardState);
+              if (!_hasLiberty(opponentGroup, boardState)) {
+                captures = true;
+                break;
+              }
+            }
+          }
+
+          // Revert the move
+          boardState[y][x] = Stone.none;
+
+          if (captures) {
+            capturingMoves.add(MoveAI(x, y, player));
+          }
+        }
+      }
+    }
+    return capturingMoves;
   }
 
   MoveAI? _findBestMove(List<List<Stone>> boardState, Stone player, {int depth = 3, int alpha = -9999, int beta = 9999, bool maximizingPlayer = true}) {
@@ -59,10 +104,8 @@ class _GoAIBoardState extends State<GoAIBoard> {
     List<MoveAI> validMoves = _getValidMoves(boardState, player);
     if (validMoves.isEmpty) return null;
 
-    // Occasionally choose a random move to make AI less predictable
-    if (random.nextDouble() < 0.1) {
-      return validMoves[random.nextInt(validMoves.length)];
-    }
+    // Shuffle valid moves to avoid predictable patterns
+    validMoves.shuffle(random);
 
     MoveAI? bestMove;
     int bestScore = maximizingPlayer ? -9999 : 9999;
@@ -96,6 +139,7 @@ class _GoAIBoardState extends State<GoAIBoard> {
 
     return bestMove ?? validMoves.first; // Return the first valid move if no best move is found
   }
+
   int _evaluateBoard(List<List<Stone>> boardState, Stone player) {
     int score = 0;
 
@@ -106,19 +150,6 @@ class _GoAIBoardState extends State<GoAIBoard> {
           score += 1; // Reward for own stones
         } else if (boardState[y][x] != Stone.none) {
           score -= 1; // Penalty for opponent's stones
-        }
-      }
-    }
-
-    // Reward capturing opponent stones
-    Stone opponent = player == Stone.black ? Stone.white : Stone.black;
-    for (int y = 0; y < widget.size; y++) {
-      for (int x = 0; x < widget.size; x++) {
-        if (boardState[y][x] == opponent) {
-          var group = _findGroup(x, y, opponent, boardState);
-          if (!_hasLiberty(group, boardState)) {
-            score += group.length * 10; // Reward capturing
-          }
         }
       }
     }
@@ -176,29 +207,33 @@ class _GoAIBoardState extends State<GoAIBoard> {
   bool _isValidMove(int x, int y, List<List<Stone>> boardState, Stone player) {
     if (x < 0 || x >= widget.size || y < 0 || y >= widget.size || boardState[y][x] != Stone.none) return false;
 
+    // Temporarily place the stone
     boardState[y][x] = player;
+
+    // Check if the move has liberties
     var group = _findGroup(x, y, player, boardState);
     if (_hasLiberty(group, boardState)) {
-      boardState[y][x] = Stone.none;
+      boardState[y][x] = Stone.none; // Revert the move
       return true;
     }
 
+    // Check if the move captures any opponent stones
     Stone opponent = player == Stone.black ? Stone.white : Stone.black;
-    bool valid = false;
+    bool captures = false;
     for (var dir in [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
       int nx = x + dir[0];
       int ny = y + dir[1];
-      if (nx >= 0 || nx < widget.size || ny >= 0 || ny < widget.size || boardState[ny][nx] == opponent) {
+      if (nx >= 0 && nx < widget.size && ny >= 0 && ny < widget.size && boardState[ny][nx] == opponent) {
         var opponentGroup = _findGroup(nx, ny, opponent, boardState);
         if (!_hasLiberty(opponentGroup, boardState)) {
-          valid = true;
+          captures = true;
           break;
         }
       }
     }
 
-    boardState[y][x] = Stone.none;
-    return valid;
+    boardState[y][x] = Stone.none; // Revert the move
+    return captures; // Allow the move if it captures opponent stones
   }
 
   void _placeStone(int x, int y) {
