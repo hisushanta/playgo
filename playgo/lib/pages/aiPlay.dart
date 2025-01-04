@@ -51,10 +51,12 @@ class _GoAIBoardState extends State<GoAIBoard> {
       return;
     }
 
-    // If no capturing moves, find the best strategic move
-    MoveAI? bestMove = _findBestMove(board, aiPlayer, depth: 3); // Depth-limited search
-    if (bestMove != null) {
-      _placeStone(bestMove.x, bestMove.y);
+    // If no capturing moves, find all valid moves
+    List<MoveAI> validMoves = _getValidMoves(board, aiPlayer);
+    if (validMoves.isNotEmpty) {
+      // Choose a random valid move
+      MoveAI randomMove = validMoves[random.nextInt(validMoves.length)];
+      _placeStone(randomMove.x, randomMove.y);
     } else {
       // If no valid move is found, end the game
       _endGame();
@@ -94,67 +96,6 @@ class _GoAIBoardState extends State<GoAIBoard> {
       }
     }
     return capturingMoves;
-  }
-
-  MoveAI? _findBestMove(List<List<Stone>> boardState, Stone player, {int depth = 3, int alpha = -9999, int beta = 9999, bool maximizingPlayer = true}) {
-    if (depth == 0 || _isGameOver(boardState)) {
-      return MoveAI(-1, -1, player)..score = _evaluateBoard(boardState, player);
-    }
-
-    List<MoveAI> validMoves = _getValidMoves(boardState, player);
-    if (validMoves.isEmpty) return null;
-
-    // Shuffle valid moves to avoid predictable patterns
-    validMoves.shuffle(random);
-
-    MoveAI? bestMove;
-    int bestScore = maximizingPlayer ? -9999 : 9999;
-
-    for (var move in validMoves) {
-      List<List<Stone>> newBoard = List.generate(widget.size, (i) => List.from(boardState[i]));
-      newBoard[move.y][move.x] = player;
-
-      MoveAI? result = _findBestMove(newBoard, player == Stone.black ? Stone.white : Stone.black, depth: depth - 1, alpha: alpha, beta: beta, maximizingPlayer: !maximizingPlayer);
-      if (result == null) continue;
-
-      int score = result.score ?? 0; // Handle null score
-      if (maximizingPlayer) {
-        if (score > bestScore) {
-          bestScore = score;
-          bestMove = move;
-        }
-        alpha = max(alpha, bestScore);
-      } else {
-        if (score < bestScore) {
-          bestScore = score;
-          bestMove = move;
-        }
-        beta = min(beta, bestScore);
-      }
-
-      if (beta <= alpha) {
-        break; // Alpha-Beta pruning
-      }
-    }
-
-    return bestMove ?? validMoves.first; // Return the first valid move if no best move is found
-  }
-
-  int _evaluateBoard(List<List<Stone>> boardState, Stone player) {
-    int score = 0;
-
-    // Evaluate based on territory, captures, and group strength
-    for (int y = 0; y < widget.size; y++) {
-      for (int x = 0; x < widget.size; x++) {
-        if (boardState[y][x] == player) {
-          score += 1; // Reward for own stones
-        } else if (boardState[y][x] != Stone.none) {
-          score -= 1; // Penalty for opponent's stones
-        }
-      }
-    }
-
-    return score;
   }
 
   bool _isGameOver(List<List<Stone>> boardState) {

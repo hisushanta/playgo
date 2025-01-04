@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:playgo/main.dart';
 import 'fund_page.dart';
@@ -27,6 +29,7 @@ class GameTournamentPage extends State<TournamentPage> {
         "entryPrice": tournament[0].toString(),
         "prizePools": tournament[1].toString(),
         "category": tournament[2].toString(),
+        "time":tournament[3].toString(),
       };
     }).toList();
     filteredTournaments = List.from(tournaments); // Default to showing all items
@@ -186,6 +189,7 @@ class GameTournamentPage extends State<TournamentPage> {
                   tournament["entryPrice"]!,
                   tournament["prizePools"]!,
                   tournament["category"]!,
+                  tournament['time']!,
                 );
               },
             ),
@@ -195,7 +199,7 @@ class GameTournamentPage extends State<TournamentPage> {
     );
   }
 
-  Widget buildTournamentTile(String entryPrice, String prizePools, String category) {
+  Widget buildTournamentTile(String entryPrice, String prizePools, String category,String time) {
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: Card(
@@ -246,19 +250,153 @@ class GameTournamentPage extends State<TournamentPage> {
                               color: Colors.grey,
                               fontStyle: FontStyle.italic)),
                       ElevatedButton(
-                        onPressed: () {},
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.yellow,
-                          foregroundColor: Colors.black,
+                      onPressed: () {
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
                           ),
-                        ),
-                        child: Text(
-                          entryPrice,
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          builder: (context) {
+                            return Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  // Handle for aesthetic purposes
+                                  Container(
+                                    width: 50,
+                                    height: 5,
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[300],
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                  SizedBox(height: 20),
+                                  // Currency Icon
+                                  CircleAvatar(
+                                    radius: 30,
+                                    backgroundColor: Colors.purple.withOpacity(0.1),
+                                    child: Icon(
+                                      Icons.currency_rupee,
+                                      color: Colors.purple,
+                                      size: 32,
+                                    ),
+                                  ),
+                                  SizedBox(height: 15),
+                                  // Title
+                                  Text(
+                                    "Confirm Payment",
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                  SizedBox(height: 10),
+                                  // Game Info
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.timer, size: 20, color: Colors.amber),
+                                      SizedBox(width: 5),
+                                      Text(
+                                        "$time min Go",
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.black54,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 20),
+                                  // Entry Fee
+                                  Container(
+                                    padding: EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[200],
+                                      borderRadius: BorderRadius.circular(15),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          "Entry Fee",
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w500,
+                                            color: Colors.black54,
+                                          ),
+                                        ),
+                                        Text(
+                                          "₹$entryPrice",
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.black87,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  SizedBox(height: 30),
+                                  // Join Now Button
+                                  ElevatedButton(
+                                    onPressed: () {
+                                    Navigator.pop(context); // Close the current dialog
+                                    info!.updateGameStatus("Active");
+                                    showModalBottomSheet(
+                                    context: context,
+                                    isScrollControlled: true,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+                                    ),
+                                    builder: (context) {
+                                      return CountdownBottomDialog();
+                                    },
+                                  );
+                                      // Handle payment confirmation logic here
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      padding: EdgeInsets.symmetric(vertical: 12, horizontal: 50),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(25),
+                                      ),
+                                      backgroundColor: Colors.yellow,
+                                      foregroundColor: Colors.black,
+                                    ),
+                                    child: Text(
+                                      "Join Now",
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(height: 20),
+                                ],
+                              ),
+                            );
+                          },
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.yellow,
+                        foregroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
                         ),
                       ),
+                      child: Text(
+                        entryPrice,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+
                     ],
                   ),
                 ],
@@ -271,4 +409,108 @@ class GameTournamentPage extends State<TournamentPage> {
   }
 }
 
+class CountdownBottomDialog extends StatefulWidget {
+  @override
+  _CountdownBottomDialogState createState() => _CountdownBottomDialogState();
+}
 
+class _CountdownBottomDialogState extends State<CountdownBottomDialog> {
+  late int _currentTime;
+  late Timer _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentTime = 30; // 30 seconds countdown
+    _startTimer();
+  }
+
+  void _startTimer() {
+    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+      setState(() {
+        if (_currentTime > 0) {
+          _currentTime--;
+        } else {
+          _timer.cancel();
+          info!.updateGameStatus("DeActive");
+          Navigator.pop(context); // Close the dialog when countdown reaches 0
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              ElevatedButton(onPressed: (){
+                _timer.cancel();
+                info!.updateGameStatus("DeActive");
+                Navigator.pop(context);
+              }, 
+              child: Icon(Icons.cancel_outlined,color: Colors.white,),
+              style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),)
+            ],
+          ),
+          // Handle for aesthetic purposes
+          Container(
+            width: double.maxFinite,
+            height: 5,
+          ),
+          SizedBox(height: 20),
+          // Title
+          Text(
+            "Game starting in...",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          SizedBox(height: 20),
+          // Countdown Timer
+          Text(
+            "$_currentTime",
+            style: TextStyle(
+              fontSize: 36,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          SizedBox(height: 20),
+          // Additional Info (Optional)
+          Text(
+            "Get ready to play!",
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.black54,
+            ),
+          ),
+          SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+}
