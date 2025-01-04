@@ -212,7 +212,7 @@ class ItemInfo{
         return false;
       }
   }
-  Future<void> updateUserProfile(String username, String profileImage, String address,String email, String number,String fund) async {
+  Future<void> updateUserProfile(String username, String profileImage, String address,String email, String number,String fund,[String gameStatus = "DeActive"]) async {
     if (uuid != null) {
       var userRef = _firestore.collection('users').doc(uuid);
       await userRef.set({
@@ -221,10 +221,9 @@ class ItemInfo{
         'address': address,
         'email': email,
         'number': number,
-        'fund':fund
+        'fund':fund,
+        'status':gameStatus
       }, SetOptions(merge: true));
-      print("UserProfile: $username,$profileImage,$address,$email,$number");
-
       // Update local data
       userProfile[uuid!] = {
         'username': username,
@@ -233,9 +232,24 @@ class ItemInfo{
         'email': email,
         'number':number,
         'fund': fund,
+        'status':gameStatus
       };
     }
   }
+Future<void> updateGameStatus(String status) async{
+  var userRef = _firestore.collection('users').doc(uuid);
+      await userRef.set({
+        'username': userProfile[uuid!]!['username'],
+        'profileImage': userProfile[uuid!]!['profileImage'],
+        'address': userProfile[uuid!]!["address"],
+        'email': userProfile[uuid!]!['address'],
+        'number': userProfile[uuid!]!['number'],
+        'fund':userProfile[uuid!]!['fund'],
+        'status':status,
+      });
+      userProfile[uuid!]!['status'] = status;
+}
+
 
   // Method to remove an order from Firestore
 Future<void> removeOrderFromFirestore(String orderId,int index) async {
