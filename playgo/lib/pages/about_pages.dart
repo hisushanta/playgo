@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 import 'package:playgo/main.dart';
+import 'package:playgo/pages/fund_page.dart';
 import 'contact.dart';
 import 'reset_password.dart';
 import 'faq_page.dart';
@@ -22,6 +23,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
   late TextEditingController _phoneController;
   late TextEditingController _emailController;
 
+  String _fundBalance = '0'; // Fund balance variable
 
   @override
   void initState() {
@@ -56,6 +58,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
         _addressController.text = info!.userProfile[info!.uuid]!['address'] ?? '';
         _phoneController.text = info!.userProfile[info!.uuid]!['number'] ?? '';
         _emailController.text = info!.userProfile[info!.uuid]!['email'] ?? '';
+        _fundBalance = info!.userProfile[info!.uuid]!['fund'] ?? '0';
+
 
         setState(() {});
       } else {
@@ -282,6 +286,48 @@ class _UserProfilePageState extends State<UserProfilePage> {
                       ),
                     ),
                     const SizedBox(height: 20),
+                    // Fund Balance Display
+                    GestureDetector( 
+                      onTap: (){
+                        Navigator.push(context, MaterialPageRoute(builder: (context) =>  AddCashPage()));
+                      },
+                      child:Row ( 
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        Card(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      color: const Color.fromARGB(255, 216, 246, 218),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            const Text(
+                              "Fund Balance",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                              ),
+                            ),
+                            Text(
+                              "₹$_fundBalance",
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                      ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
                     _isEditing
                         ? TextField(
                             controller: _addressController,
@@ -296,6 +342,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                                 : _addressController.text,
                             icon: Icons.home,
                           ),
+                    
                     const SizedBox(height: 10),
                     _isEditing
                         ? TextField(
