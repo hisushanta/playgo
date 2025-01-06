@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'add_fund.dart';
 
 class AddCashPage extends StatefulWidget {
   @override
@@ -108,6 +109,7 @@ class _AddCashPageState extends State<AddCashPage> {
                   onPressed: _isAmountEntered
                       ? () {
                           // Add functionality to handle adding money
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => PaymentOptionsPage()));
                         }
                       : null,
                   style: ElevatedButton.styleFrom(
