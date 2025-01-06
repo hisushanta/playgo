@@ -6,6 +6,7 @@ import 'about_pages.dart';
 import 'fund_page.dart';
 import 'tournament_page.dart';
 import 'aiPlay.dart';
+import 'wallet_pages.dart';
 
 final userId = FirebaseAuth.instance.currentUser!.uid;
 
@@ -97,42 +98,67 @@ class GoGameHomePage extends StatelessWidget {
           return Scaffold(
       backgroundColor: Colors.grey[200],
       appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 47, 46, 46),
-        elevation: 0,
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children:
-          [ Row( 
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text("PlayGo",style: TextStyle(color: Colors.white,fontStyle: FontStyle.italic,fontWeight: FontWeight.bold),)
-            ],
-          ),
-          GestureDetector(
-            child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            SizedBox(width: 16),
-            Icon(Icons.currency_rupee, color: Colors.white),
-            Text(
-              '${info!.userProfile[info!.uuid]!['fund']}',
-              style: TextStyle(color: Colors.white),
-            ),
-            SizedBox(width: 16),
-            CircleAvatar(
-              backgroundColor: Colors.white,
-              radius: 14,
-              child: Icon(Icons.add, color: Colors.black, size: 18),
-            ),
-          ],
-        ),
-        onTap: (){
-          Navigator.push(context, MaterialPageRoute(builder: (context) =>  AddCashPage()));
-        },
-          ),
-          ],
+  backgroundColor: const Color.fromARGB(255, 47, 46, 46),
+  elevation: 0,
+  title: Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+      // App title aligned to the left
+      Text(
+        "PlayGo",
+        style: TextStyle(
+          color: Colors.white,
+          fontStyle: FontStyle.italic,
+          fontWeight: FontWeight.bold,
         ),
       ),
+      // Buttons aligned to the right
+      Row(
+        children: [
+          // Add Cash Button
+          ElevatedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => WalletPage()),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: Colors.green,
+              side: BorderSide(color: Colors.lightGreenAccent),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+            child: Text('₹${info!.userProfile[info!.uuid]!['fund']}'),
+          ),
+          SizedBox(width: 8), // Reduced space between buttons
+          // Wallet Button
+          ElevatedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => AddCashPage()),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: Colors.orange,
+              side: BorderSide(color: Colors.orangeAccent),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+            child: Icon(Icons.add,color: Colors.orange,),
+          ),
+        ],
+      ),
+    ],
+  ),
+),
+
+
       body: Column(
         children: [
           Expanded(

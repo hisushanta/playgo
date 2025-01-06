@@ -101,6 +101,9 @@ class ItemInfo{
           'email': userProfileData['email'],
           'number': userProfileData['number'],
           'fund': userProfileData['fund'],
+          'deposit': userProfileData['deposit'],
+          'winning': userProfileData['winning'],
+          'status': userProfileData['status']
         };
       } catch(e){
         updateUserProfile("Unknown", "assets/mainIcon.png", '','','','');
@@ -212,7 +215,7 @@ class ItemInfo{
         return false;
       }
   }
-  Future<void> updateUserProfile(String username, String profileImage, String address,String email, String number,String fund,[String gameStatus = "DeActive"]) async {
+  Future<void> updateUserProfile(String username, String profileImage, String address,String email, String number,String fund,[String deposit = '0.0',String winning = '0.0',String gameStatus = "DeActive"]) async {
     if (uuid != null) {
       var userRef = _firestore.collection('users').doc(uuid);
       await userRef.set({
@@ -222,6 +225,8 @@ class ItemInfo{
         'email': email,
         'number': number,
         'fund':fund,
+        'deposit':deposit,
+        'winning':winning,
         'status':gameStatus
       }, SetOptions(merge: true));
       // Update local data
@@ -232,6 +237,8 @@ class ItemInfo{
         'email': email,
         'number':number,
         'fund': fund,
+        'deposit': deposit,
+        'winning':winning,
         'status':gameStatus
       };
     }
@@ -245,6 +252,8 @@ Future<void> updateGameStatus(String status) async{
         'email': userProfile[uuid!]!['address'],
         'number': userProfile[uuid!]!['number'],
         'fund':userProfile[uuid!]!['fund'],
+        'deposit': userProfile[uuid!]!['deposit'],
+        'winning': userProfile[uuid!]!['winning'],
         'status':status,
       });
       userProfile[uuid!]!['status'] = status;
