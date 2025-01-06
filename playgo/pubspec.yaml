@@ -45,3 +45,8 @@ flutter:
    - "assets/goBoard.jpg"
    - 'assets/homeIcon.png'
    - 'assets/mainPage.png'
+   - 'assets/mc-card.png'
+   - 'assets/visa-card.png'
+   - 'assets/rupay-card.png'
+   - 'assets/hdfc-logo.jpg'
+   - 'assets/gpay-logo.png'
