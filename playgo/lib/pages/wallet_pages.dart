@@ -27,9 +27,9 @@ class WalletPage extends StatelessWidget {
           children: [
             _buildBalanceCard(),
             SizedBox(height: 16),
-            _buildSection('Deposits', '₹0', 'Add Cash', Colors.green, Icons.add),
+            _buildSection('Deposits', '₹${info!.userProfile[userId]!['deposit']}', 'Add Cash', Colors.green, Icons.add),
             SizedBox(height: 16),
-            _buildSection('Winnings', '₹0', 'Withdraw', Colors.yellow, Icons.arrow_downward),
+            _buildSection('Winnings', '₹${info!.userProfile[userId]!['winning']}', 'Withdraw', Colors.orange, Icons.arrow_downward),
             SizedBox(height: 16),
             _buildInfoSection('Cashback Reward', '₹1.32', 'CASHBACK DETAILS'),
             SizedBox(height: 16),

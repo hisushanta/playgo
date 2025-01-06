@@ -120,7 +120,7 @@ class GoGameHomePage extends StatelessWidget {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => AddCashPage()),
+                MaterialPageRoute(builder: (context) => WalletPage()),
               );
             },
             style: ElevatedButton.styleFrom(
@@ -139,7 +139,7 @@ class GoGameHomePage extends StatelessWidget {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => WalletPage()),
+                MaterialPageRoute(builder: (context) => AddCashPage()),
               );
             },
             style: ElevatedButton.styleFrom(
