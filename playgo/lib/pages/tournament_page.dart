@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:playgo/main.dart';
 import 'fund_page.dart';
 import 'home.dart';
-
+import 'match_play.dart';
 class TournamentPage extends StatefulWidget {
   @override
   GameTournamentPage createState() => GameTournamentPage();
@@ -417,6 +417,7 @@ class CountdownBottomDialog extends StatefulWidget {
 class _CountdownBottomDialogState extends State<CountdownBottomDialog> {
   late int _currentTime;
   late Timer _timer;
+  bool _isSearching = true;
 
   @override
   void initState() {
@@ -426,17 +427,50 @@ class _CountdownBottomDialogState extends State<CountdownBottomDialog> {
   }
 
   void _startTimer() {
-    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
-      setState(() {
-        if (_currentTime > 0) {
+    _timer = Timer.periodic(Duration(seconds: 1), (timer) async {
+      if (!_isSearching) return;
+
+      if (_currentTime > 0) {
+        setState(() {
           _currentTime--;
-        } else {
+        });
+
+        // Check for game partner
+        var partnerdata = await info!.findGamePartner(userId);
+        final partnerId = partnerdata.keys.single;
+        if (partnerdata.isNotEmpty) {
           _timer.cancel();
-          info!.updateGameStatus("DeActive");
-          Navigator.pop(context); // Close the dialog when countdown reaches 0
+          info!.updateGameStatus("Matched");
+          Map<String, dynamic> partner = await info!.createMatch( userId, partnerId);
+          Navigator.pop(context); // Close the dialog
+          _navigateToMatchBoard(partner);
         }
-      });
+      } else {
+        _timer.cancel();
+        _handleTimeout();
+      }
     });
+  }
+
+  void _handleTimeout() {
+    setState(() {
+      _isSearching = false;
+    });
+    info!.updateGameStatus("DeActive");
+    Navigator.pop(context); // Close the dialog
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('No partner found. Please try again later.')),
+    );
+  }
+
+  void _navigateToMatchBoard(Map<String, dynamic> partner) async {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => GoBoardMatch(size: 19, gameId: partner['gameId'], playerId: userId),
+      ),
+    );
+    
   }
 
   @override
@@ -459,54 +493,36 @@ class _CountdownBottomDialogState extends State<CountdownBottomDialog> {
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              ElevatedButton(onPressed: (){
-                _timer.cancel();
-                info!.updateGameStatus("DeActive");
-                Navigator.pop(context);
-              }, 
-              child: Icon(Icons.cancel_outlined,color: Colors.white,),
-              style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      ),)
+              ElevatedButton(
+                onPressed: () {
+                  _timer.cancel();
+                  info!.updateGameStatus("DeActive");
+                  Navigator.pop(context);
+                },
+                child: Icon(Icons.cancel_outlined, color: Colors.white),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+              ),
             ],
           ),
-          // Handle for aesthetic purposes
-          Container(
-            width: double.maxFinite,
-            height: 5,
-          ),
           SizedBox(height: 20),
-          // Title
           Text(
-            "Game starting in...",
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
+            "Searching for a partner...",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           SizedBox(height: 20),
-          // Countdown Timer
           Text(
             "$_currentTime",
-            style: TextStyle(
-              fontSize: 36,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
+            style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
           ),
           SizedBox(height: 20),
-          // Additional Info (Optional)
           Text(
-            "Get ready to play!",
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.black54,
-            ),
+            "Please wait while we find a game partner.",
+            style: TextStyle(fontSize: 16, color: Colors.black54),
           ),
           SizedBox(height: 20),
         ],

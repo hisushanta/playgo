@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:playgo/main.dart';
+import 'package:playgo/pages/fund_page.dart';
 import 'home.dart';
 
 class WalletPage extends StatelessWidget {
@@ -27,9 +28,9 @@ class WalletPage extends StatelessWidget {
           children: [
             _buildBalanceCard(),
             SizedBox(height: 16),
-            _buildSection('Deposits', '₹${info!.userProfile[userId]!['deposit']}', 'Add Cash', Colors.green, Icons.add),
+            _buildSection('Deposits', '₹${info!.userProfile[userId]!['deposit']}', 'Add Cash', Colors.green, Icons.add,context),
             SizedBox(height: 16),
-            _buildSection('Winnings', '₹${info!.userProfile[userId]!['winning']}', 'Withdraw', Colors.orange, Icons.arrow_downward),
+            _buildSection('Winnings', '₹${info!.userProfile[userId]!['winning']}', 'Withdraw', Colors.orange, Icons.arrow_downward,context),
             SizedBox(height: 16),
             _buildInfoSection('Cashback Reward', '₹1.32', 'CASHBACK DETAILS'),
             SizedBox(height: 16),
@@ -80,7 +81,7 @@ class WalletPage extends StatelessWidget {
     );
   }
 
-  Widget _buildSection(String title, String amount, String actionText, Color buttonColor, IconData icon) {
+  Widget _buildSection(String title, String amount, String actionText, Color buttonColor, IconData icon, BuildContext context) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
       decoration: BoxDecoration(
@@ -106,7 +107,11 @@ class WalletPage extends StatelessWidget {
             ],
           ),
           ElevatedButton.icon(
-            onPressed: () {},
+            onPressed: () {
+              if (actionText == 'Add Cash'){
+                Navigator.push(context, MaterialPageRoute(builder: (context) => AddCashPage()));
+              }
+            },
             icon: Icon(icon, color: Colors.white, size: 16),
             label: Text(actionText),
             style: ElevatedButton.styleFrom(

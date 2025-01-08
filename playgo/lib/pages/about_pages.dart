@@ -4,6 +4,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 import 'package:playgo/main.dart';
 import 'package:playgo/pages/fund_page.dart';
+import 'package:playgo/pages/wallet_pages.dart';
 import 'contact.dart';
 import 'reset_password.dart';
 import 'faq_page.dart';
@@ -289,7 +290,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                     // Fund Balance Display
                     GestureDetector( 
                       onTap: (){
-                        Navigator.push(context, MaterialPageRoute(builder: (context) =>  AddCashPage()));
+                        Navigator.push(context, MaterialPageRoute(builder: (context) =>  WalletPage()));
                       },
                       child:Row ( 
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
