@@ -243,21 +243,84 @@ class ItemInfo{
       };
     }
   }
-Future<void> updateGameStatus(String status) async{
-  var userRef = _firestore.collection('users').doc(uuid);
-      await userRef.set({
-        'username': userProfile[uuid!]!['username'],
-        'profileImage': userProfile[uuid!]!['profileImage'],
-        'address': userProfile[uuid!]!["address"],
-        'email': userProfile[uuid!]!['address'],
-        'number': userProfile[uuid!]!['number'],
-        'fund':userProfile[uuid!]!['fund'],
-        'deposit': userProfile[uuid!]!['deposit'],
-        'winning': userProfile[uuid!]!['winning'],
-        'status':status,
-      });
-      userProfile[uuid!]!['status'] = status;
+
+ Future<Map<String, Map<String, dynamic>>> findGamePartner(String userId) async {
+  QuerySnapshot querySnapshot = await _firestore.collection('users').get();
+  var allUserProfile = querySnapshot.docs.map((doc) => {doc.id: doc.data() as Map<String, dynamic>}).toList();
+
+  if (allUserProfile.isNotEmpty) {
+    for (var data in allUserProfile) {
+      for (var id in data.keys) {
+        if ((id != userId) && (data[id]!['status'] == 'Active')) {
+          // Generate a consistent match ID by sorting the user IDs
+          List<String> users = [userId, id];
+          users.sort();
+          String matchId = users.join('+');
+
+          // Check if a match already exists between the users
+          DocumentSnapshot matchSnapshot = await _firestore.collection('games').doc(matchId).get();
+          if (!matchSnapshot.exists) {
+            return {id: data[id]!};
+          }
+        }
+      }
+    }
+  }
+  return {};
 }
+ Future<void> deleteMatch(String matchId) async {
+  await _firestore.collection('games').doc(matchId).delete();
+}
+  Future<Map<String, dynamic>> createMatch(String userId, String partnerId) async {
+    // Generate a consistent match ID by sorting the user IDs
+    List<String> users = [userId, partnerId];
+    users.sort();
+    String matchId = users.join('+');
+
+    return await _firestore.runTransaction((transaction) async {
+      // Check if the match already exists
+      DocumentSnapshot matchSnapshot = await transaction.get(_firestore.collection('games').doc(matchId));
+
+      if (matchSnapshot.exists) {
+        // If the match already exists, return it
+        
+          Map<String,dynamic> matchData = matchSnapshot.data() as Map<String, dynamic>;
+          matchData["gameId"] = matchId;
+          return matchData;
+      } else {
+        // If the match does not exist, create a new one
+        Map<String, dynamic> matchData = {
+          'gameId':matchId,
+          "player1Id": userId,
+          "player2Id": partnerId,
+          "player1Stone": "black",
+          "player2Stone": "white",
+          "activePlayers":[userId, partnerId],
+          'currentTurn': "black",
+          "createdAt": DateTime.now().toIso8601String(), // Add a timestamp for debugging
+        };
+
+        // Create the match
+        transaction.set(_firestore.collection('games').doc(matchId), matchData);
+        return matchData;
+      }
+    });
+  }
+  Future<void> updateGameStatus(String status) async{
+    var userRef = _firestore.collection('users').doc(uuid);
+        await userRef.set({
+          'username': userProfile[uuid!]!['username'],
+          'profileImage': userProfile[uuid!]!['profileImage'],
+          'address': userProfile[uuid!]!["address"],
+          'email': userProfile[uuid!]!['email'],
+          'number': userProfile[uuid!]!['number'],
+          'fund':userProfile[uuid!]!['fund'],
+          'deposit': userProfile[uuid!]!['deposit'],
+          'winning': userProfile[uuid!]!['winning'],
+          'status':status,
+        });
+        userProfile[uuid!]!['status'] = status;
+  }
 
 
   // Method to remove an order from Firestore
