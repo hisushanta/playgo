@@ -441,7 +441,7 @@ class _CountdownBottomDialogState extends State<CountdownBottomDialog> {
         if (partnerdata.isNotEmpty) {
           _timer.cancel();
           info!.updateGameStatus("Matched");
-          Map<String, dynamic> partner = await info!.createMatch( userId, partnerId);
+          Map<String, dynamic> partner = await info!.createMatch( userId, partnerId,info!.userProfile[userId]!["username"]);
           Navigator.pop(context); // Close the dialog
           _navigateToMatchBoard(partner);
         }

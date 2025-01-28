@@ -1,7 +1,9 @@
 import 'dart:async';
-
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:playgo/main.dart';
+import 'package:playgo/pages/home.dart';
 
 enum Stone { none, black, white }
 
@@ -30,13 +32,19 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
   int whiteScore = 0;
   int blackMissedTurns = 0;
   int whiteMissedTurns = 0;
-  int playerTimeLeft = 30;
-  Timer? _timer;
+  int blackTimeLeft = 30; // Timer for black player
+  int whiteTimeLeft = 30; // Timer for white player
+  int gameTimeLeft = 240; // 4-minute game timer (240 seconds)
+  String userName = "";
+  String partnerName = '';
+  Timer? _turnTimer;
+  Timer? _gameTimer;
 
   String? player1Id;
   String? player2Id;
   String? player1Stone;
   String? player2Stone;
+  String currentTurn = 'black'; // Track the current turn
 
   @override
   void initState() {
@@ -44,7 +52,8 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
     _initializeBoard();
     gameStream = FirebaseFirestore.instance.collection('games').doc(widget.gameId).snapshots();
     _listenToGameUpdates();
-    _startTimer();
+    _startTurnTimer();
+    _startGameTimer();
     _markPlayerAsActive();
     _initializePlayers();
   }
@@ -65,14 +74,11 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
           player2Id = data['player2Id'];
           player1Stone = data['player1Stone'];
           player2Stone = data['player2Stone'];
-
-          // Initialize currentTurn if it doesn't exist
-          if (!data.containsKey('currentTurn')) {
-            gameDoc.update({'currentTurn': 'black'});
-          }
-
-          // Determine if it's the current player's turn
-          String currentTurn = data['currentTurn'] ?? 'black';
+          userName = data[player1Id];
+          partnerName = data[player2Id];
+          currentTurn = data['currentTurn'] ?? 'black'; // Initialize currentTurn
+          blackTimeLeft = data['blackTimeLeft'] ?? 30; // Initialize black timer
+          whiteTimeLeft = data['whiteTimeLeft'] ?? 30; // Initialize white timer
           isPlayerTurn = (currentTurn == 'black' && widget.playerId == player1Id && player1Stone == 'black') ||
               (currentTurn == 'white' && widget.playerId == player2Id && player2Stone == 'white');
         });
@@ -105,10 +111,11 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
             whiteScore = data['whiteScore'] ?? 0;
             blackMissedTurns = data['blackMissedTurns'] ?? 0;
             whiteMissedTurns = data['whiteMissedTurns'] ?? 0;
-            playerTimeLeft = data['playerTimeLeft'] ?? 30;
+            blackTimeLeft = data['blackTimeLeft'] ?? 30; // Update black timer
+            whiteTimeLeft = data['whiteTimeLeft'] ?? 30; // Update white timer
+            currentTurn = data['currentTurn'] ?? 'black'; // Update currentTurn
 
             // Determine if it's the current player's turn
-            String currentTurn = data['currentTurn'] ?? 'black';
             isPlayerTurn = (currentTurn == 'black' && widget.playerId == player1Id && player1Stone == 'black') ||
                 (currentTurn == 'white' && widget.playerId == player2Id && player2Stone == 'white');
 
@@ -122,7 +129,7 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
     });
   }
 
-  void destroyTheScreen(){
+  void destroyTheScreen() {
     Navigator.pop(context);
   }
 
@@ -156,15 +163,33 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
     }
   }
 
-  void _startTimer() {
-    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
-      if (isPlayerTurn) {
+  void _startTurnTimer() {
+    _turnTimer = Timer.periodic(Duration(seconds: 1), (timer) {
+      if (currentTurn == 'black') {
         setState(() {
-          playerTimeLeft--;
+          blackTimeLeft--;
         });
-        if (playerTimeLeft <= 0) {
+        if (blackTimeLeft <= 0) {
           _missTurn(); // Switch turn immediately when time runs out
         }
+      } else if (currentTurn == 'white') {
+        setState(() {
+          whiteTimeLeft--;
+        });
+        if (whiteTimeLeft <= 0) {
+          _missTurn(); // Switch turn immediately when time runs out
+        }
+      }
+    });
+  }
+
+  void _startGameTimer() {
+    _gameTimer = Timer.periodic(Duration(seconds: 1), (timer) {
+      setState(() {
+        gameTimeLeft--;
+      });
+      if (gameTimeLeft <= 0) {
+        _endGameByTime(); // End the game when the 4-minute timer runs out
       }
     });
   }
@@ -176,7 +201,6 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
     if (gameSnapshot.exists) {
       final data = gameSnapshot.data();
       if (data != null) {
-        String currentTurn = data['currentTurn'] ?? 'black';
         String nextTurn = currentTurn == 'black' ? 'white' : 'black';
 
         // Increment missed turns for the current player
@@ -189,7 +213,8 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
         // Switch turns and reset the timer
         await gameDoc.update({
           'currentTurn': nextTurn,
-          'playerTimeLeft': 30, // Reset timer for the next player
+          'blackTimeLeft': 30, // Reset black timer
+          'whiteTimeLeft': 30, // Reset white timer
           'blackMissedTurns': blackMissedTurns,
           'whiteMissedTurns': whiteMissedTurns,
         });
@@ -202,6 +227,38 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
     }
   }
 
+  void _endGameByTime() async {
+    _gameTimer?.cancel();
+    _turnTimer?.cancel();
+
+    String winner = blackScore > whiteScore ? 'black' : 'white';
+    await FirebaseFirestore.instance.collection('games').doc(widget.gameId).update({
+      'winner': winner,
+      'activePlayers': [], // Mark both players as inactive
+    });
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Game Over'),
+        content: Text('$winner wins with ${blackScore > whiteScore ? blackScore : whiteScore} points!'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              destroyTheScreen();
+            },
+            child: Text('OK'),
+          ),
+        ],
+      ),
+    );
+
+    // Delete the game after a short delay
+    await Future.delayed(Duration(seconds: 1));
+    await FirebaseFirestore.instance.collection('games').doc(widget.gameId).delete();
+  }
+
   void _endGame() async {
     String winner = blackMissedTurns >= 3 ? 'white' : 'black';
     await FirebaseFirestore.instance.collection('games').doc(widget.gameId).update({
@@ -209,7 +266,8 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
       'activePlayers': [], // Mark both players as inactive
     });
 
-    _timer?.cancel();
+    _turnTimer?.cancel();
+    _gameTimer?.cancel();
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -232,6 +290,79 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
     await FirebaseFirestore.instance.collection('games').doc(widget.gameId).delete();
   }
 
+  List<List<int>> _findGroup(int x, int y, Stone stone) {
+    List<List<int>> group = [];
+    List<List<int>> visited = List.generate(widget.size, (_) => List.filled(widget.size, 0));
+
+    void dfs(int i, int j) {
+      if (i < 0 || i >= widget.size || j < 0 || j >= widget.size || visited[j][i] == 1 || board[j][i] != stone) return;
+      visited[j][i] = 1;
+      group.add([i, j]);
+      for (var dir in [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+        dfs(i + dir[0], j + dir[1]);
+      }
+    }
+
+    dfs(x, y);
+    return group;
+  }
+
+  bool _hasLiberty(List<List<int>> group) {
+    for (var pos in group) {
+      for (var dir in [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+        int nx = pos[0] + dir[0];
+        int ny = pos[1] + dir[1];
+        if (nx >= 0 && nx < widget.size && ny >= 0 && ny < widget.size && board[ny][nx] == Stone.none) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  Future<void> _captureStones(List<List<int>> group) async {
+    final gameDoc = FirebaseFirestore.instance.collection('games').doc(widget.gameId);
+    final gameSnapshot = await gameDoc.get();
+
+    if (gameSnapshot.exists) {
+      final data = gameSnapshot.data();
+      if (data != null) {
+        String currentTurn = data['currentTurn'] ?? 'black';
+
+        // Update the score for the capturing player
+        if (currentTurn == 'black') {
+          blackScore += group.length;
+        } else {
+          whiteScore += group.length;
+        }
+
+        // Remove the captured stones from the board
+        for (var pos in group) {
+          board[pos[1]][pos[0]] = Stone.none;
+        }
+
+        // Update the board and scores in Firestore
+        Map<String, String> firestoreBoard = {};
+        for (int y = 0; y < widget.size; y++) {
+          for (int x = 0; x < widget.size; x++) {
+            String key = '$x\_$y';
+            firestoreBoard[key] = board[y][x] == Stone.black
+                ? 'black'
+                : board[y][x] == Stone.white
+                    ? 'white'
+                    : 'none';
+          }
+        }
+
+        await gameDoc.update({
+          'board': firestoreBoard,
+          'blackScore': blackScore,
+          'whiteScore': whiteScore,
+        });
+      }
+    }
+  }
+
   Future<void> _placeStone(int x, int y) async {
     final gameDoc = FirebaseFirestore.instance.collection('games').doc(widget.gameId);
     final gameSnapshot = await gameDoc.get();
@@ -247,8 +378,25 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
 
           setState(() {
             board[y][x] = currentTurn == 'black' ? Stone.black : Stone.white;
-            playerTimeLeft = 30;
+            if (currentTurn == 'black') {
+              blackTimeLeft = 30;
+            } else {
+              whiteTimeLeft = 30;
+            }
           });
+
+          // Check for captures
+          Stone opponent = currentTurn == 'black' ? Stone.white : Stone.black;
+          for (var dir in [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+            int nx = x + dir[0];
+            int ny = y + dir[1];
+            if (nx >= 0 && nx < widget.size && ny >= 0 && ny < widget.size && board[ny][nx] == opponent) {
+              var opponentGroup = _findGroup(nx, ny, opponent);
+              if (!_hasLiberty(opponentGroup)) {
+                await _captureStones(opponentGroup);
+              }
+            }
+          }
 
           // Convert the board to a map for Firestore
           Map<String, String> firestoreBoard = {};
@@ -268,7 +416,8 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
           await gameDoc.update({
             'board': firestoreBoard,
             'currentTurn': nextTurn, // Switch turns
-            'playerTimeLeft': 30, // Reset timer for the next player
+            'blackTimeLeft': blackTimeLeft, // Update black timer
+            'whiteTimeLeft': whiteTimeLeft, // Update white timer
           });
         }
       }
@@ -277,7 +426,8 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _turnTimer?.cancel();
+    _gameTimer?.cancel();
     _markPlayerAsInactive();
     super.dispose();
   }
@@ -288,11 +438,32 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
       backgroundColor: const Color.fromARGB(255, 253, 192, 100),
       appBar: AppBar(
         backgroundColor: const Color.fromARGB(255, 253, 192, 100),
-        title: const Center(
-          child: Text(
-            'Go Multiplayer',
-            style: TextStyle(fontWeight: FontWeight.bold, fontStyle: FontStyle.italic),
-          ),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Go Multiplayer',
+              style: TextStyle(fontWeight: FontWeight.bold, fontStyle: FontStyle.italic),
+            ),
+            SizedBox(
+              width: 40,
+              height: 40,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  CircularProgressIndicator(
+                    value: gameTimeLeft / 240,
+                    backgroundColor: Colors.grey[300],
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                  ),
+                  Text(
+                    '${gameTimeLeft ~/ 60}:${(gameTimeLeft % 60).toString().padLeft(2, '0')}',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
       body: LayoutBuilder(
@@ -310,12 +481,39 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                // Opponent Info
                 Padding(
                   padding: const EdgeInsets.all(8.0),
-                  child: Text(
-                    "Current Turn: ${isPlayerTurn ? 'Your Turn' : 'Opponent\'s Turn'}"
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          SizedBox(
+                            width: 40,
+                            height: 40,
+                            child: CircularProgressIndicator(
+                              value: currentTurn == 'black' ? blackTimeLeft / 30 : 0, // Only active for black's turn
+                              backgroundColor: Colors.grey[300],
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                            ),
+                          ),
+                          CircleAvatar(
+                            radius: 20,
+                            child: Icon(Icons.person),
+                          ),
+                        ],
+                      ),
+                      SizedBox(width: 10),
+                      Text(
+                        "$userName(${player1Stone == 'black' ? 'Black' : 'White'}) - $blackScore",
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ],
                   ),
                 ),
+                // Go Board
                 Center(
                   child: SizedBox(
                     width: boardSize + padding * 2,
@@ -380,21 +578,36 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
                     ),
                   ),
                 ),
+                // Current User Info
                 Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text("Black: $blackScore"),
-                      Text("White: $whiteScore"),
+                      Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          SizedBox(
+                            width: 40,
+                            height: 40,
+                            child: CircularProgressIndicator(
+                              value: currentTurn == 'white' ? whiteTimeLeft / 30 : 0, // Only active for white's turn
+                              backgroundColor: Colors.grey[300],
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                            ),
+                          ),
+                          CircleAvatar(
+                            radius: 20,
+                            child: Icon(Icons.person),
+                          ),
+                        ],
+                      ),
+                      SizedBox(width: 10),
+                      Text(
+                        "$partnerName(${player2Stone == 'black' ? 'Black' : 'White'}) - $whiteScore",
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
                     ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Text(
-                    "Time Left: $playerTimeLeft seconds",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
