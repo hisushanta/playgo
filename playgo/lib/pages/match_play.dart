@@ -18,7 +18,8 @@ class GoBoardMatch extends StatefulWidget {
   final int size;
   final String gameId;
   final String playerId;
-  const GoBoardMatch({Key? key, required this.size, required this.gameId, required this.playerId}) : super(key: key);
+  final int totalGameTime;
+  const GoBoardMatch({Key? key, required this.size, required this.gameId, required this.playerId , required this.totalGameTime}) : super(key: key);
 
   @override
   State<GoBoardMatch> createState() => _GoMultiplayerBoardState();
@@ -45,10 +46,12 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
   String? player1Stone;
   String? player2Stone;
   String currentTurn = 'black'; // Track the current turn
-
+  bool showTurnNotification = false;
+   
   @override
   void initState() {
     super.initState();
+    gameTimeLeft = widget.totalGameTime*60;
     _initializeBoard();
     gameStream = FirebaseFirestore.instance.collection('games').doc(widget.gameId).snapshots();
     _listenToGameUpdates();
@@ -60,6 +63,7 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
 
   void _initializeBoard() {
     board = List.generate(widget.size, (_) => List.filled(widget.size, Stone.none));
+
   }
 
   void _initializePlayers() async {
@@ -118,11 +122,61 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
             // Determine if it's the current player's turn
             isPlayerTurn = (currentTurn == 'black' && widget.playerId == player1Id && player1Stone == 'black') ||
                 (currentTurn == 'white' && widget.playerId == player2Id && player2Stone == 'white');
+            // Check if game has ended
+          if (data['status'] == 'ended' && data['endReason'] == 'timeout') {
+            _gameTimer?.cancel();
+            _turnTimer?.cancel();
+            
+            String winner = data['winner'];
+            int finalBlackScore = data['finalBlackScore'] ?? blackScore;
+            int finalWhiteScore = data['finalWhiteScore'] ?? whiteScore;
+
+            // Show dialog to both players
+            if (!mounted) return;
+            // Determine if current player is the winner
+              bool isCurrentPlayerWinner = (winner == 'black' && player1Stone == 'black' && widget.playerId == player1Id) ||
+                                        (winner == 'white' && player2Stone == 'white' && widget.playerId == player2Id);
+
+              // Show personalized dialog to current player
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => AlertDialog(
+                  title: Text(isCurrentPlayerWinner ? 'You Won!' : 'Game Over'),
+                  content: Text(
+                    isCurrentPlayerWinner
+                      ? 'Congratulations! You won with ${winner == 'black' ? blackScore : whiteScore} points!'
+                      : 'Your opponent won with ${winner == 'black' ? blackScore : whiteScore} points.'
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        destroyTheScreen();
+                      },
+                      child: Text('OK'),
+                    ),
+                  ],
+                ),
+              );
+          }
 
             // Check if the game should end due to missed turns
             if (blackMissedTurns >= 3 || whiteMissedTurns >= 3) {
               _endGame();
             }
+            if (isPlayerTurn) {
+              showTurnNotification = true;
+              // Hide notification after 1 second
+              Future.delayed(Duration(seconds: 1), () {
+                if (mounted) {
+                  setState(() {
+                    showTurnNotification = false;
+                  });
+                }
+              });
+            }
+
           });
         }
       }
@@ -184,6 +238,7 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
   }
 
   void _startGameTimer() {
+
     _gameTimer = Timer.periodic(Duration(seconds: 1), (timer) {
       setState(() {
         gameTimeLeft--;
@@ -227,21 +282,36 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
     }
   }
 
-  void _endGameByTime() async {
+   void _endGameByTime() async {
     _gameTimer?.cancel();
     _turnTimer?.cancel();
 
     String winner = blackScore > whiteScore ? 'black' : 'white';
+    
+    // Update game state to show it's ended
     await FirebaseFirestore.instance.collection('games').doc(widget.gameId).update({
+      'status': 'ended',
       'winner': winner,
-      'activePlayers': [], // Mark both players as inactive
+      'finalBlackScore': blackScore,
+      'finalWhiteScore': whiteScore,
+      'endReason': 'timeout'
     });
 
+    // Determine if current player is the winner
+    bool isCurrentPlayerWinner = (winner == 'black' && player1Stone == 'black' && widget.playerId == player1Id) ||
+                               (winner == 'white' && player2Stone == 'white' && widget.playerId == player2Id);
+
+    // Show personalized dialog to current player
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: Text('Game Over'),
-        content: Text('$winner wins with ${blackScore > whiteScore ? blackScore : whiteScore} points!'),
+        title: Text(isCurrentPlayerWinner ? 'You Won!' : 'Game Over'),
+        content: Text(
+          isCurrentPlayerWinner
+            ? 'Congratulations! You won with ${winner == 'black' ? blackScore : whiteScore} points!'
+            : 'Your opponent won with ${winner == 'black' ? blackScore : whiteScore} points.'
+        ),
         actions: [
           TextButton(
             onPressed: () {
@@ -254,11 +324,17 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
       ),
     );
 
-    // Delete the game after a short delay
-    await Future.delayed(Duration(seconds: 1));
+    // Wait a few seconds before marking players inactive and deleting the game
+    await Future.delayed(Duration(seconds: 5));
+    await FirebaseFirestore.instance.collection('games').doc(widget.gameId).update({
+      'activePlayers': [], // Mark both players as inactive
+    });
     await FirebaseFirestore.instance.collection('games').doc(widget.gameId).delete();
   }
 
+
+
+  
   void _endGame() async {
     String winner = blackMissedTurns >= 3 ? 'white' : 'black';
     await FirebaseFirestore.instance.collection('games').doc(widget.gameId).update({
@@ -268,11 +344,20 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
 
     _turnTimer?.cancel();
     _gameTimer?.cancel();
+
+    // Determine if current player is the winner
+    bool isCurrentPlayerWinner = (winner == 'black' && player1Stone == 'black' && widget.playerId == player1Id) ||
+                               (winner == 'white' && player2Stone == 'white' && widget.playerId == player2Id);
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Game Over'),
-        content: Text('$winner wins!'),
+        title: Text(isCurrentPlayerWinner ? 'You Won!' : 'Game Over'),
+        content: Text(
+          isCurrentPlayerWinner
+            ? 'Congratulations! You won due to opponent\'s missed turns!'
+            : 'Your opponent won due to your missed turns.'
+        ),
         actions: [
           TextButton(
             onPressed: () {
@@ -289,6 +374,7 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
     await Future.delayed(Duration(seconds: 1));
     await FirebaseFirestore.instance.collection('games').doc(widget.gameId).delete();
   }
+
 
   List<List<int>> _findGroup(int x, int y, Stone stone) {
     List<List<int>> group = [];
@@ -383,7 +469,9 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
             } else {
               whiteTimeLeft = 30;
             }
+
           });
+          
 
           // Check for captures
           Stone opponent = currentTurn == 'black' ? Stone.white : Stone.black;
@@ -452,7 +540,7 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
                 alignment: Alignment.center,
                 children: [
                   CircularProgressIndicator(
-                    value: gameTimeLeft / 240,
+                    value: gameTimeLeft / widget.totalGameTime*60,
                     backgroundColor: Colors.grey[300],
                     valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
                   ),
@@ -477,146 +565,173 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
           double cellSize = boardSize / (widget.size - 1);
           double stoneSize = cellSize * 0.8;
 
-          return SingleChildScrollView(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Opponent Info
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Stack(
-                        alignment: Alignment.center,
+          return Stack(
+            children: [
+              SingleChildScrollView(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Opponent Info
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          SizedBox(
-                            width: 40,
-                            height: 40,
-                            child: CircularProgressIndicator(
-                              value: currentTurn == 'black' ? blackTimeLeft / 30 : 0, // Only active for black's turn
-                              backgroundColor: Colors.grey[300],
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
-                            ),
+                          Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              SizedBox(
+                                width: 40,
+                                height: 40,
+                                child: CircularProgressIndicator(
+                                  value: currentTurn == 'black' ? blackTimeLeft / 30 : 0, // Only active for black's turn
+                                  backgroundColor: Colors.grey[300],
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                                ),
+                              ),
+                              CircleAvatar(
+                                radius: 20,
+                                child: Icon(Icons.person),
+                              ),
+                            ],
                           ),
-                          CircleAvatar(
-                            radius: 20,
-                            child: Icon(Icons.person),
+                          SizedBox(width: 10),
+                          Text(
+                            "$userName(${player1Stone == 'black' ? 'Black' : 'White'}) - $blackScore",
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                           ),
                         ],
                       ),
-                      SizedBox(width: 10),
-                      Text(
-                        "$userName(${player1Stone == 'black' ? 'Black' : 'White'}) - $blackScore",
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                ),
-                // Go Board
-                Center(
-                  child: SizedBox(
-                    width: boardSize + padding * 2,
-                    height: boardSize + padding * 2,
-                    child: Stack(
-                      children: [
-                        Container(
-                          width: boardSize + padding * 2,
-                          height: boardSize + padding * 2,
-                          color: const Color(0xFFD3B07C),
-                        ),
-                        for (int i = 0; i < widget.size; i++)
-                          Positioned(
-                            top: i * cellSize + padding,
-                            left: padding,
-                            width: boardSize,
-                            child: Container(
-                              height: 1,
-                              color: Colors.black,
+                    ),
+                    // Go Board
+                    Center(
+                      child: SizedBox(
+                        width: boardSize + padding * 2,
+                        height: boardSize + padding * 2,
+                        child: Stack(
+                          children: [
+                            Container(
+                              width: boardSize + padding * 2,
+                              height: boardSize + padding * 2,
+                              color: const Color(0xFFD3B07C),
                             ),
-                          ),
-                        for (int i = 0; i < widget.size; i++)
-                          Positioned(
-                            left: i * cellSize + padding,
-                            top: padding,
-                            height: boardSize,
-                            child: Container(
-                              width: 1,
-                              color: Colors.black,
-                            ),
-                          ),
-                        for (int y = 0; y < widget.size; y++)
-                          for (int x = 0; x < widget.size; x++)
-                            if (board[y][x] != Stone.none)
+                            for (int i = 0; i < widget.size; i++)
                               Positioned(
-                                top: y * cellSize + padding - stoneSize / 2,
-                                left: x * cellSize + padding - stoneSize / 2,
-                                child: _buildStone(board[y][x], stoneSize),
+                                top: i * cellSize + padding,
+                                left: padding,
+                                width: boardSize,
+                                child: Container(
+                                  height: 1,
+                                  color: Colors.black,
+                                ),
                               ),
-                        GridView.builder(
-                          physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: widget.size,
-                          ),
-                          itemCount: widget.size * widget.size,
-                          itemBuilder: (context, index) {
-                            int x = index % widget.size;
-                            int y = index ~/ widget.size;
-                            return GestureDetector(
-                              onTap: () {
-                                if (isPlayerTurn) {
-                                  _placeStone(x, y);
-                                }
+                            for (int i = 0; i < widget.size; i++)
+                              Positioned(
+                                left: i * cellSize + padding,
+                                top: padding,
+                                height: boardSize,
+                                child: Container(
+                                  width: 1,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            for (int y = 0; y < widget.size; y++)
+                              for (int x = 0; x < widget.size; x++)
+                                if (board[y][x] != Stone.none)
+                                  Positioned(
+                                    top: y * cellSize + padding - stoneSize / 2,
+                                    left: x * cellSize + padding - stoneSize / 2,
+                                    child: _buildStone(board[y][x], stoneSize),
+                                  ),
+                            GridView.builder(
+                              physics: const NeverScrollableScrollPhysics(),
+                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: widget.size,
+                              ),
+                              itemCount: widget.size * widget.size,
+                              itemBuilder: (context, index) {
+                                int x = index % widget.size;
+                                int y = index ~/ widget.size;
+                                return GestureDetector(
+                                  onTap: () {
+                                    if (isPlayerTurn) {
+                                      _placeStone(x, y);
+                                    }
+                                  },
+                                  child: Container(
+                                    color: Colors.transparent,
+                                  ),
+                                );
                               },
-                              child: Container(
-                                color: Colors.transparent,
-                              ),
-                            );
-                          },
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
+                    ),
+                    // Current User Info
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              SizedBox(
+                                width: 40,
+                                height: 40,
+                                child: CircularProgressIndicator(
+                                  value: currentTurn == 'white' ? whiteTimeLeft / 30 : 0, // Only active for white's turn
+                                  backgroundColor: Colors.grey[300],
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                                ),
+                              ),
+                              CircleAvatar(
+                                radius: 20,
+                                child: Icon(Icons.person),
+                              ),
+                            ],
+                          ),
+                          SizedBox(width: 10),
+                          Text(
+                            "$partnerName(${player2Stone == 'black' ? 'Black' : 'White'}) - $whiteScore",
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Notification for current user's turn
+              // _notifyUserTurn(isPlayerTurn);
+               
+              if (isPlayerTurn && showTurnNotification)
+
+                Center(
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.8),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      'Your Turn!',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
-                // Current User Info
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          SizedBox(
-                            width: 40,
-                            height: 40,
-                            child: CircularProgressIndicator(
-                              value: currentTurn == 'white' ? whiteTimeLeft / 30 : 0, // Only active for white's turn
-                              backgroundColor: Colors.grey[300],
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
-                            ),
-                          ),
-                          CircleAvatar(
-                            radius: 20,
-                            child: Icon(Icons.person),
-                          ),
-                        ],
-                      ),
-                      SizedBox(width: 10),
-                      Text(
-                        "$partnerName(${player2Stone == 'black' ? 'Black' : 'White'}) - $whiteScore",
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+            ],
           );
         },
       ),
     );
   }
+  
 
   Widget _buildStone(Stone stone, double size) {
     return Container(

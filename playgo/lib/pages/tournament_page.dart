@@ -353,7 +353,7 @@ class GameTournamentPage extends State<TournamentPage> {
                                       borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
                                     ),
                                     builder: (context) {
-                                      return CountdownBottomDialog();
+                                      return CountdownBottomDialog( time: int.parse(time));
                                     },
                                   );
                                       // Handle payment confirmation logic here
@@ -410,6 +410,8 @@ class GameTournamentPage extends State<TournamentPage> {
 }
 
 class CountdownBottomDialog extends StatefulWidget {
+  final int time;
+  const CountdownBottomDialog({Key? key, required this.time}):super(key:key);
   @override
   _CountdownBottomDialogState createState() => _CountdownBottomDialogState();
 }
@@ -441,7 +443,7 @@ class _CountdownBottomDialogState extends State<CountdownBottomDialog> {
         if (partnerdata.isNotEmpty) {
           _timer.cancel();
           info!.updateGameStatus("Matched");
-          Map<String, dynamic> partner = await info!.createMatch( userId, partnerId,info!.userProfile[userId]!["username"]);
+          Map<String, dynamic> partner = await info!.createMatch( userId, partnerId,info!.userProfile[userId]!["username"],);
           Navigator.pop(context); // Close the dialog
           _navigateToMatchBoard(partner);
         }
@@ -467,7 +469,7 @@ class _CountdownBottomDialogState extends State<CountdownBottomDialog> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => GoBoardMatch(size: 19, gameId: partner['gameId'], playerId: userId),
+        builder: (context) => GoBoardMatch(size: 19, gameId: partner['gameId'], playerId: userId,totalGameTime: widget.time),
       ),
     );
     
