@@ -151,6 +151,10 @@ class ItemInfo{
     }
   }
   
+  Future<String> getUserName(String uuid) async{
+    var userData = await _firestore.collection('users').doc(uuid).get();
+    return userData["username"]!;
+  }
   
  bool checkHaveNumberOrAddress(){
   
@@ -271,12 +275,12 @@ class ItemInfo{
  Future<void> deleteMatch(String matchId) async {
   await _firestore.collection('games').doc(matchId).delete();
 }
-  Future<Map<String, dynamic>> createMatch(String userId, String partnerId) async {
+  Future<Map<String, dynamic>> createMatch(String userId, String partnerId,String userIdName) async {
     // Generate a consistent match ID by sorting the user IDs
     List<String> users = [userId, partnerId];
     users.sort();
     String matchId = users.join('+');
-
+    String partnerIdName = await getUserName(partnerId);
     return await _firestore.runTransaction((transaction) async {
       // Check if the match already exists
       DocumentSnapshot matchSnapshot = await transaction.get(_firestore.collection('games').doc(matchId));
@@ -293,6 +297,8 @@ class ItemInfo{
           'gameId':matchId,
           "player1Id": userId,
           "player2Id": partnerId,
+          userId:userIdName,
+          partnerId:partnerIdName,
           "player1Stone": "black",
           "player2Stone": "white",
           "activePlayers":[userId, partnerId],
