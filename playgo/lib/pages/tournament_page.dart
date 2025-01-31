@@ -345,7 +345,7 @@ class GameTournamentPage extends State<TournamentPage> {
                                   ElevatedButton(
                                     onPressed: () {
                                     Navigator.pop(context); // Close the current dialog
-                                    info!.updateGameStatus("Active");
+                                    info!.updateGameStatus("Active",userId);
                                     showModalBottomSheet(
                                     context: context,
                                     isScrollControlled: true,
@@ -442,7 +442,7 @@ class _CountdownBottomDialogState extends State<CountdownBottomDialog> {
         final partnerId = partnerdata.keys.single;
         if (partnerdata.isNotEmpty) {
           _timer.cancel();
-          info!.updateGameStatus("Matched");
+          info!.updateGameStatus("Matched",userId);
           Map<String, dynamic> partner = await info!.createMatch( userId, partnerId,info!.userProfile[userId]!["username"],);
           Navigator.pop(context); // Close the dialog
           _navigateToMatchBoard(partner);
@@ -458,7 +458,7 @@ class _CountdownBottomDialogState extends State<CountdownBottomDialog> {
     setState(() {
       _isSearching = false;
     });
-    info!.updateGameStatus("DeActive");
+    info!.updateGameStatus("DeActive",userId);
     Navigator.pop(context); // Close the dialog
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('No partner found. Please try again later.')),
@@ -498,7 +498,7 @@ class _CountdownBottomDialogState extends State<CountdownBottomDialog> {
               ElevatedButton(
                 onPressed: () {
                   _timer.cancel();
-                  info!.updateGameStatus("DeActive");
+                  info!.updateGameStatus("DeActive",userId);
                   Navigator.pop(context);
                 },
                 child: Icon(Icons.cancel_outlined, color: Colors.white),
