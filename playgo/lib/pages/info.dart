@@ -312,7 +312,7 @@ class ItemInfo{
       }
     });
   }
-  Future<void> updateGameStatus(String status) async{
+  Future<void> updateGameStatus(String status,String uuid) async{
     var userRef = _firestore.collection('users').doc(uuid);
         await userRef.set({
           'username': userProfile[uuid!]!['username'],

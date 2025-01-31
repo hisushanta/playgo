@@ -345,7 +345,7 @@ class GameTournamentPage extends State<TournamentPage> {
                                   ElevatedButton(
                                     onPressed: () {
                                     Navigator.pop(context); // Close the current dialog
-                                    info!.updateGameStatus("Active");
+                                    info!.updateGameStatus("Active",userId);
                                     showModalBottomSheet(
                                     context: context,
                                     isScrollControlled: true,
@@ -353,7 +353,7 @@ class GameTournamentPage extends State<TournamentPage> {
                                       borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
                                     ),
                                     builder: (context) {
-                                      return CountdownBottomDialog();
+                                      return CountdownBottomDialog( time: int.parse(time));
                                     },
                                   );
                                       // Handle payment confirmation logic here
@@ -410,6 +410,8 @@ class GameTournamentPage extends State<TournamentPage> {
 }
 
 class CountdownBottomDialog extends StatefulWidget {
+  final int time;
+  const CountdownBottomDialog({Key? key, required this.time}):super(key:key);
   @override
   _CountdownBottomDialogState createState() => _CountdownBottomDialogState();
 }
@@ -440,8 +442,8 @@ class _CountdownBottomDialogState extends State<CountdownBottomDialog> {
         final partnerId = partnerdata.keys.single;
         if (partnerdata.isNotEmpty) {
           _timer.cancel();
-          info!.updateGameStatus("Matched");
-          Map<String, dynamic> partner = await info!.createMatch( userId, partnerId,info!.userProfile[userId]!["username"]);
+          info!.updateGameStatus("Matched",userId);
+          Map<String, dynamic> partner = await info!.createMatch( userId, partnerId,info!.userProfile[userId]!["username"],);
           Navigator.pop(context); // Close the dialog
           _navigateToMatchBoard(partner);
         }
@@ -456,7 +458,7 @@ class _CountdownBottomDialogState extends State<CountdownBottomDialog> {
     setState(() {
       _isSearching = false;
     });
-    info!.updateGameStatus("DeActive");
+    info!.updateGameStatus("DeActive",userId);
     Navigator.pop(context); // Close the dialog
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('No partner found. Please try again later.')),
@@ -467,7 +469,7 @@ class _CountdownBottomDialogState extends State<CountdownBottomDialog> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => GoBoardMatch(size: 19, gameId: partner['gameId'], playerId: userId),
+        builder: (context) => GoBoardMatch(size: 19, gameId: partner['gameId'], playerId: userId,totalGameTime: widget.time),
       ),
     );
     
@@ -496,7 +498,7 @@ class _CountdownBottomDialogState extends State<CountdownBottomDialog> {
               ElevatedButton(
                 onPressed: () {
                   _timer.cancel();
-                  info!.updateGameStatus("DeActive");
+                  info!.updateGameStatus("DeActive",userId);
                   Navigator.pop(context);
                 },
                 child: Icon(Icons.cancel_outlined, color: Colors.white),

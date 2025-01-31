@@ -18,7 +18,8 @@ class GoBoardMatch extends StatefulWidget {
   final int size;
   final String gameId;
   final String playerId;
-  const GoBoardMatch({Key? key, required this.size, required this.gameId, required this.playerId}) : super(key: key);
+  final int totalGameTime;
+  const GoBoardMatch({Key? key, required this.size, required this.gameId, required this.playerId , required this.totalGameTime}) : super(key: key);
 
   @override
   State<GoBoardMatch> createState() => _GoMultiplayerBoardState();
@@ -45,10 +46,12 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
   String? player1Stone;
   String? player2Stone;
   String currentTurn = 'black'; // Track the current turn
-
+  bool showTurnNotification = false;
+   
   @override
   void initState() {
     super.initState();
+    gameTimeLeft = widget.totalGameTime*60;
     _initializeBoard();
     gameStream = FirebaseFirestore.instance.collection('games').doc(widget.gameId).snapshots();
     _listenToGameUpdates();
@@ -60,6 +63,7 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
 
   void _initializeBoard() {
     board = List.generate(widget.size, (_) => List.filled(widget.size, Stone.none));
+
   }
 
   void _initializePlayers() async {
@@ -119,10 +123,18 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
             isPlayerTurn = (currentTurn == 'black' && widget.playerId == player1Id && player1Stone == 'black') ||
                 (currentTurn == 'white' && widget.playerId == player2Id && player2Stone == 'white');
 
-            // Check if the game should end due to missed turns
-            if (blackMissedTurns >= 3 || whiteMissedTurns >= 3) {
-              _endGame();
+            if (isPlayerTurn) {
+              showTurnNotification = true;
+              // Hide notification after 1 second
+              Future.delayed(Duration(seconds: 1), () {
+                if (mounted) {
+                  setState(() {
+                    showTurnNotification = false;
+                  });
+                }
+              });
             }
+
           });
         }
       }
@@ -184,6 +196,7 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
   }
 
   void _startGameTimer() {
+
     _gameTimer = Timer.periodic(Duration(seconds: 1), (timer) {
       setState(() {
         gameTimeLeft--;
@@ -210,85 +223,157 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
           whiteMissedTurns++;
         }
 
-        // Switch turns and reset the timer
+        // Switch turns without resetting timer
         await gameDoc.update({
           'currentTurn': nextTurn,
-          'blackTimeLeft': 30, // Reset black timer
-          'whiteTimeLeft': 30, // Reset white timer
           'blackMissedTurns': blackMissedTurns,
           'whiteMissedTurns': whiteMissedTurns,
         });
 
         // Check if the game should end due to missed turns
         if (blackMissedTurns >= 3 || whiteMissedTurns >= 3) {
-          _endGame();
+          _endGameByTime();
         }
       }
     }
   }
 
+
   void _endGameByTime() async {
     _gameTimer?.cancel();
     _turnTimer?.cancel();
 
-    String winner = blackScore > whiteScore ? 'black' : 'white';
+    // Determine winner based on missed turns, not points
+    String winner;
+    if (blackMissedTurns >= 3) {
+      winner = 'white';
+    } else if (whiteMissedTurns >= 3) {
+      winner = 'black';
+    } else {
+      // If no missed turns, then use points
+      winner = blackScore > whiteScore ? 'black' : 'white';
+    }
+    
+    // Update game state
     await FirebaseFirestore.instance.collection('games').doc(widget.gameId).update({
+      'status': 'ended',
       'winner': winner,
-      'activePlayers': [], // Mark both players as inactive
+      'endReason': 'timeout'
     });
 
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Game Over'),
-        content: Text('$winner wins with ${blackScore > whiteScore ? blackScore : whiteScore} points!'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              destroyTheScreen();
-            },
-            child: Text('OK'),
-          ),
-        ],
-      ),
-    );
+    _showWinnerDialog(winner);
 
-    // Delete the game after a short delay
-    await Future.delayed(Duration(seconds: 1));
+    // Clean up game
+    await Future.delayed(Duration(seconds: 5));
+    await FirebaseFirestore.instance.collection('games').doc(widget.gameId).update({
+      'activePlayers': [],
+    });
     await FirebaseFirestore.instance.collection('games').doc(widget.gameId).delete();
   }
 
-  void _endGame() async {
-    String winner = blackMissedTurns >= 3 ? 'white' : 'black';
-    await FirebaseFirestore.instance.collection('games').doc(widget.gameId).update({
-      'winner': winner,
-      'activePlayers': [], // Mark both players as inactive
-    });
+  void _showWinnerDialog(String winner) {
+    // Determine if current player is the winner
+    bool isCurrentPlayerWinner = (winner == 'black' && player1Stone == 'black' && widget.playerId == player1Id) ||
+                               (winner == 'white' && player2Stone == 'white' && widget.playerId == player2Id);
 
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          padding: EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: isCurrentPlayerWinner 
+                ? [Colors.blue.shade200, Colors.blue.shade400]
+                : [Colors.grey.shade200, Colors.grey.shade400],
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isCurrentPlayerWinner ? Icons.emoji_events : Icons.star,
+                size: 60,
+                color: isCurrentPlayerWinner ? Colors.amber : Colors.grey.shade700,
+              ),
+              SizedBox(height: 16),
+              Text(
+                isCurrentPlayerWinner ? 'Victory!' : 'You Lose',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              SizedBox(height: 12),
+              Text(
+                isCurrentPlayerWinner
+                  ? 'Congratulations on your win!'
+                  : 'Better luck next time!',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.white.withOpacity(0.9),
+                ),
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: isCurrentPlayerWinner ? Colors.blue : Colors.grey.shade700,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                ),
+                onPressed: () {
+                  Navigator.pop(context);
+                  destroyTheScreen();
+                },
+                child: Text('Continue'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+
+
+  
+  void _endGame() async {
     _turnTimer?.cancel();
     _gameTimer?.cancel();
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Game Over'),
-        content: Text('$winner wins!'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              destroyTheScreen();
-            },
-            child: Text('OK'),
-          ),
-        ],
-      ),
-    );
 
-    // Delete the game after a short delay
-    await Future.delayed(Duration(seconds: 1));
+    String winner = blackMissedTurns >= 3 ? 'white' : 'black';
+    
+    // Update game state
+    await FirebaseFirestore.instance.collection('games').doc(widget.gameId).update({
+      'status': 'ended',
+      'winner': winner,
+      'endReason': 'missed_turns'
+    });
+
+    _showWinnerDialog(winner);
+
+    // Clean up game
+    await Future.delayed(Duration(seconds: 5));
+    await FirebaseFirestore.instance.collection('games').doc(widget.gameId).update({
+      'activePlayers': [],
+    });
     await FirebaseFirestore.instance.collection('games').doc(widget.gameId).delete();
+    info!.updateGameStatus("DeActive",player1Id!);
+    info!.updateGameStatus("DeActive", player2Id!);
   }
+
 
   List<List<int>> _findGroup(int x, int y, Stone stone) {
     List<List<int>> group = [];
@@ -383,7 +468,9 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
             } else {
               whiteTimeLeft = 30;
             }
+
           });
+          
 
           // Check for captures
           Stone opponent = currentTurn == 'black' ? Stone.white : Stone.black;
@@ -432,7 +519,9 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
     super.dispose();
   }
 
-  @override
+// [Previous imports and class definitions remain the same until build method]
+
+    @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 253, 192, 100),
@@ -445,20 +534,19 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
               'Go Multiplayer',
               style: TextStyle(fontWeight: FontWeight.bold, fontStyle: FontStyle.italic),
             ),
-            SizedBox(
-              width: 40,
-              height: 40,
-              child: Stack(
-                alignment: Alignment.center,
+            Container(
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Row(
                 children: [
-                  CircularProgressIndicator(
-                    value: gameTimeLeft / 240,
-                    backgroundColor: Colors.grey[300],
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
-                  ),
+                  Icon(Icons.timer, size: 20),
+                  SizedBox(width: 8),
                   Text(
                     '${gameTimeLeft ~/ 60}:${(gameTimeLeft % 60).toString().padLeft(2, '0')}',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
@@ -468,152 +556,253 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
       ),
       body: LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
-          double boardSize = constraints.maxWidth > constraints.maxHeight
-              ? constraints.maxHeight
+          double boardSize = constraints.maxWidth > constraints.maxHeight - 160 
+              ? constraints.maxHeight - 160 
               : constraints.maxWidth;
           double padding = boardSize * 0.05;
           boardSize -= padding * 2;
-
           double cellSize = boardSize / (widget.size - 1);
           double stoneSize = cellSize * 0.8;
 
-          return SingleChildScrollView(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Opponent Info
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          SizedBox(
-                            width: 40,
-                            height: 40,
-                            child: CircularProgressIndicator(
-                              value: currentTurn == 'black' ? blackTimeLeft / 30 : 0, // Only active for black's turn
-                              backgroundColor: Colors.grey[300],
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+          return Column(
+            children: [
+
+              SizedBox(height: 8),
+              _buildPlayerInfo(
+                name: userName,
+                score: blackScore,
+                isBlack: player1Stone == 'black',
+                timeLeft: player1Stone == 'black' ? blackTimeLeft : whiteTimeLeft,
+                isCurrentTurn: currentTurn == (player1Stone == 'black' ? 'black' : 'white'),
+              ),
+              SizedBox(height: 4),
+              
+              // Board Container with Turn Notification Overlay
+              Expanded(
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Board
+                    Center(
+                      child: Container(
+                        margin: EdgeInsets.symmetric(vertical: 5),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(15),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              spreadRadius: 2,
+                              blurRadius: 5,
+                              offset: Offset(0, 3),
                             ),
-                          ),
-                          CircleAvatar(
-                            radius: 20,
-                            child: Icon(Icons.person),
-                          ),
-                        ],
-                      ),
-                      SizedBox(width: 10),
-                      Text(
-                        "$userName(${player1Stone == 'black' ? 'Black' : 'White'}) - $blackScore",
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                ),
-                // Go Board
-                Center(
-                  child: SizedBox(
-                    width: boardSize + padding * 2,
-                    height: boardSize + padding * 2,
-                    child: Stack(
-                      children: [
-                        Container(
-                          width: boardSize + padding * 2,
-                          height: boardSize + padding * 2,
-                          color: const Color(0xFFD3B07C),
+                          ],
                         ),
-                        for (int i = 0; i < widget.size; i++)
-                          Positioned(
-                            top: i * cellSize + padding,
-                            left: padding,
-                            width: boardSize,
-                            child: Container(
-                              height: 1,
-                              color: Colors.black,
+                        child: Stack(
+                          children: [
+                            Container(
+                              width: boardSize + padding * 2,
+                              height: boardSize + padding * 2,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFD3B07C),
+                                borderRadius: BorderRadius.circular(15),
+                              ),
                             ),
-                          ),
-                        for (int i = 0; i < widget.size; i++)
-                          Positioned(
-                            left: i * cellSize + padding,
-                            top: padding,
-                            height: boardSize,
-                            child: Container(
-                              width: 1,
-                              color: Colors.black,
-                            ),
-                          ),
-                        for (int y = 0; y < widget.size; y++)
-                          for (int x = 0; x < widget.size; x++)
-                            if (board[y][x] != Stone.none)
+                            // Grid lines
+                            ...List.generate(widget.size, (i) => 
                               Positioned(
-                                top: y * cellSize + padding - stoneSize / 2,
-                                left: x * cellSize + padding - stoneSize / 2,
-                                child: _buildStone(board[y][x], stoneSize),
+                                top: i * cellSize + padding,
+                                left: padding,
+                                child: Container(
+                                  width: boardSize,
+                                  height: 1,
+                                  color: Colors.black.withOpacity(0.7),
+                                ),
                               ),
-                        GridView.builder(
-                          physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: widget.size,
-                          ),
-                          itemCount: widget.size * widget.size,
-                          itemBuilder: (context, index) {
-                            int x = index % widget.size;
-                            int y = index ~/ widget.size;
-                            return GestureDetector(
-                              onTap: () {
-                                if (isPlayerTurn) {
-                                  _placeStone(x, y);
-                                }
-                              },
-                              child: Container(
-                                color: Colors.transparent,
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                // Current User Info
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          SizedBox(
-                            width: 40,
-                            height: 40,
-                            child: CircularProgressIndicator(
-                              value: currentTurn == 'white' ? whiteTimeLeft / 30 : 0, // Only active for white's turn
-                              backgroundColor: Colors.grey[300],
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
                             ),
-                          ),
-                          CircleAvatar(
-                            radius: 20,
-                            child: Icon(Icons.person),
-                          ),
-                        ],
+                            ...List.generate(widget.size, (i) => 
+                              Positioned(
+                                left: i * cellSize + padding,
+                                top: padding,
+                                child: Container(
+                                  width: 1,
+                                  height: boardSize,
+                                  color: Colors.black.withOpacity(0.7),
+                                ),
+                              ),
+                            ),
+                            // Stones
+                            ...List.generate(
+                              widget.size * widget.size,
+                              (index) {
+                                int x = index % widget.size;
+                                int y = index ~/ widget.size;
+                                if (board[y][x] != Stone.none) {
+                                  return Positioned(
+                                    top: y * cellSize + padding - stoneSize / 2,
+                                    left: x * cellSize + padding - stoneSize / 2,
+                                    child: _buildStone(board[y][x], stoneSize),
+                                  );
+                                }
+                                return SizedBox.shrink();
+                              },
+                            ),
+                            // Touch Grid
+                            Positioned.fill(
+                              child: GridView.builder(
+                                physics: const NeverScrollableScrollPhysics(),
+                                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: widget.size,
+                                ),
+                                itemCount: widget.size * widget.size,
+                                itemBuilder: (context, index) {
+                                  int x = index % widget.size;
+                                  int y = index ~/ widget.size;
+                                  return GestureDetector(
+                                    onTap: () {
+                                      if (isPlayerTurn) {
+                                        _placeStone(x, y);
+                                      }
+                                    },
+                                    child: Container(color: Colors.transparent),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      SizedBox(width: 10),
-                      Text(
-                        "$partnerName(${player2Stone == 'black' ? 'Black' : 'White'}) - $whiteScore",
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    
+                    // Turn Notification Overlay (centered on board)
+                    if (isPlayerTurn && showTurnNotification)
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 25, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.9),
+                          borderRadius: BorderRadius.circular(25),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.3),
+                              spreadRadius: 2,
+                              blurRadius: 5,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          'Your Turn!',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
-                    ],
-                  ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              
+              SizedBox(height: 4),
+              _buildPlayerInfo(
+                name: partnerName,
+                score: whiteScore,
+                isBlack: player2Stone == 'black',
+                timeLeft: player2Stone == 'black' ? blackTimeLeft : whiteTimeLeft,
+                isCurrentTurn: currentTurn == (player2Stone == 'black' ? 'black' : 'white'),
+              ),
+              SizedBox(height: 8),
+            ],
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildPlayerInfo({
+    required String name,
+    required int score,
+    required bool isBlack,
+    required int timeLeft,
+    required bool isCurrentTurn,
+  }) {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 3,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isCurrentTurn ? Colors.blue : Colors.grey,
+                        width: 2,
+                      ),
+                    ),
+                    child: CircularProgressIndicator(
+                      value: timeLeft / 30,
+                      backgroundColor: Colors.grey[300],
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        isCurrentTurn ? Colors.blue : Colors.grey,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isBlack ? Colors.black : Colors.white,
+                      border: Border.all(color: Colors.black, width: 1),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(width: 12),
+              Text(
+                name,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.blue.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              'Score: $score',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.blue[700],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -625,7 +814,15 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: stone == Stone.black ? Colors.black : Colors.white,
-        border: Border.all(color: Colors.black),
+        border: Border.all(color: Colors.black.withOpacity(0.5)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            spreadRadius: 1,
+            blurRadius: 2,
+            offset: Offset(0, 1),
+          ),
+        ],
       ),
     );
   }
