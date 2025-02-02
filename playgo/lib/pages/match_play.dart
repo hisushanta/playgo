@@ -290,7 +290,8 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
         winner = blackScore > whiteScore ? 'black' : 'white';
       }
     }
-    
+    info!.updateGameStatus("DeActive",player1Id!,"0.0");
+    info!.updateGameStatus("DeActive", player2Id!,"0.0");
     // Update game state
     await FirebaseFirestore.instance.collection('games').doc(widget.gameId).update({
       'status': 'ended',
@@ -306,8 +307,7 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
       'activePlayers': [],
     });
     await FirebaseFirestore.instance.collection('games').doc(widget.gameId).delete();
-    info!.updateGameStatus("DeActive",player1Id!,widget.entryPrice);
-    info!.updateGameStatus("DeActive", player2Id!,widget.entryPrice);
+    
 
   }
 
@@ -468,7 +468,8 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
     _gameTimer?.cancel();
 
     String winner = blackMissedTurns >= 3 ? 'white' : 'black';
-    
+    info!.updateGameStatus("DeActive",player1Id!,"0.0");
+    info!.updateGameStatus("DeActive", player2Id!,"0.0");
     // Update game state
     await FirebaseFirestore.instance.collection('games').doc(widget.gameId).update({
       'status': 'ended',
@@ -484,8 +485,7 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
       'activePlayers': [],
     });
     await FirebaseFirestore.instance.collection('games').doc(widget.gameId).delete();
-    info!.updateGameStatus("DeActive",player1Id!,widget.entryPrice);
-    info!.updateGameStatus("DeActive", player2Id!,widget.entryPrice);
+    
   }
 
 
@@ -734,7 +734,8 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
     if (confirm) {
       _turnTimer?.cancel();
       _gameTimer?.cancel();
-
+      info!.updateGameStatus("DeActive",player1Id!,"0.0");
+      info!.updateGameStatus("DeActive", player2Id!,"0.0");
       // Update game state in Firestore to trigger opponent's listener
       await FirebaseFirestore.instance.collection('games').doc(widget.gameId).update({
         'status': 'ended',
@@ -753,8 +754,7 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
         'activePlayers': [],
       });
       await FirebaseFirestore.instance.collection('games').doc(widget.gameId).delete();
-      info!.updateGameStatus("DeActive", player1Id!,widget.entryPrice);
-      info!.updateGameStatus("DeActive", player2Id!,widget.entryPrice);
+      
     }
   }
 // Checks if placing a stone would result in suicide (no liberties)

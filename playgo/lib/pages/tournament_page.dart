@@ -250,19 +250,19 @@ class GameTournamentPage extends State<TournamentPage> {
                               color: Colors.grey,
                               fontStyle: FontStyle.italic)),
                       ElevatedButton(
-                      onPressed: () {
-                        showModalBottomSheet(
-                          context: context,
-                          isScrollControlled: true,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-                          ),
-                          builder: (context) {
-                            return Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
+                        onPressed: () {
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+                            ),
+                            builder: (context) {
+                              return Padding(
+                                  padding: const EdgeInsets.all(16.0),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
                                   // Handle for aesthetic purposes
                                   Container(
                                     width: 50,
@@ -342,29 +342,48 @@ class GameTournamentPage extends State<TournamentPage> {
                                   ),
                                   SizedBox(height: 30),
                                   // Join Now Button
-                                  ElevatedButton(
-                                    onPressed: () {
-                                    if(double.parse(info!.userProfile[userId]!["fund"]) >= double.parse(entryPrice) ){
-                                      Navigator.pop(context); // Close the current dialog
-                                      info!.updateGameStatus("Active",userId,entryPrice);
-                                      showModalBottomSheet(
-                                      context: context,
-                                      isScrollControlled: true,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+                                    ElevatedButton(
+                              onPressed: () {
+                                if(double.parse(info!.userProfile[userId]!["fund"]) >= double.parse(entryPrice)) {
+                                  Navigator.pop(context);
+                                  info!.updateGameStatus("Active", userId, entryPrice);
+                                  showModalBottomSheet(
+                                    context: context,
+                                    isDismissible: false,
+                                    enableDrag: false,
+                                    isScrollControlled: true,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+                                    ),
+                                    builder: (context) {
+                                      return PopScope(
+                                        canPop: false,
+                                        child: CountdownBottomDialog(
+                                          time: int.parse(time),
+                                          entryPrice: entryPrice,
+                                          prizePool: prizePools,
+                                        ),
+                                      );
+                                    },
+                                  );
+                                } else {
+                                  Navigator.pop(context);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Insufficient Balance, Please Add Money And Then Play Game💵',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontStyle: FontStyle.italic
+                                        )
                                       ),
-                                      builder: (context) {
-                                        return CountdownBottomDialog( time: int.parse(time), entryPrice: entryPrice,prizePool: prizePools,);
-                                      },
-                                    );
-                                      // Handle payment confirmation logic here
-                                    } else{
-                                      Navigator.pop(context);
-                                       ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: Text('Infusiant Balance, Please Add Money And Then Play Game💵',style: TextStyle(color: Colors.white,fontWeight:FontWeight.bold,fontStyle: FontStyle.italic)),duration: Duration(seconds: 3),backgroundColor: Colors.redAccent,),
-                                        );
-                                    }
-                                    }, 
+                                      duration: Duration(seconds: 3),
+                                      backgroundColor: Colors.redAccent,
+                                    ),
+                                  );
+                                }
+                              }, 
                                     style: ElevatedButton.styleFrom(
                                       padding: EdgeInsets.symmetric(vertical: 12, horizontal: 50),
                                       shape: RoundedRectangleBorder(
@@ -384,7 +403,8 @@ class GameTournamentPage extends State<TournamentPage> {
                                   SizedBox(height: 20),
                                 ],
                               ),
-                            );
+                            
+                              );
                           },
                         );
                       },
