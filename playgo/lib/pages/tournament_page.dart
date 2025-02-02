@@ -345,7 +345,7 @@ class GameTournamentPage extends State<TournamentPage> {
                                   ElevatedButton(
                                     onPressed: () {
                                     Navigator.pop(context); // Close the current dialog
-                                    info!.updateGameStatus("Active",userId);
+                                    info!.updateGameStatus("Active",userId,entryPrice);
                                     showModalBottomSheet(
                                     context: context,
                                     isScrollControlled: true,
@@ -353,7 +353,7 @@ class GameTournamentPage extends State<TournamentPage> {
                                       borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
                                     ),
                                     builder: (context) {
-                                      return CountdownBottomDialog( time: int.parse(time));
+                                      return CountdownBottomDialog( time: int.parse(time), entryPrice: entryPrice,);
                                     },
                                   );
                                       // Handle payment confirmation logic here
@@ -411,21 +411,50 @@ class GameTournamentPage extends State<TournamentPage> {
 
 class CountdownBottomDialog extends StatefulWidget {
   final int time;
-  const CountdownBottomDialog({Key? key, required this.time}):super(key:key);
+  final String entryPrice;
+  
+  const CountdownBottomDialog({
+    Key? key, 
+    required this.time,
+    required this.entryPrice,
+  }) : super(key: key);
+  
   @override
   _CountdownBottomDialogState createState() => _CountdownBottomDialogState();
 }
 
-class _CountdownBottomDialogState extends State<CountdownBottomDialog> {
+class _CountdownBottomDialogState extends State<CountdownBottomDialog> with SingleTickerProviderStateMixin {
   late int _currentTime;
   late Timer _timer;
   bool _isSearching = true;
+  int _matchCountdown = 3;
+  bool _partnerFound = false;
+  Map<String, dynamic>? _partner;
+  late AnimationController _animationController;
+  late Animation<double> _scaleAnimation;
 
   @override
   void initState() {
     super.initState();
-    _currentTime = 30; // 30 seconds countdown
+    _currentTime = 30;
+    _animationController = AnimationController(
+      duration: Duration(milliseconds: 500),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.elasticOut,
+      ),
+    );
     _startTimer();
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    _animationController.dispose();
+    super.dispose();
   }
 
   void _startTimer() {
@@ -438,14 +467,17 @@ class _CountdownBottomDialogState extends State<CountdownBottomDialog> {
         });
 
         // Check for game partner
-        var partnerdata = await info!.findGamePartner(userId);
-        final partnerId = partnerdata.keys.single;
+        var partnerdata = await info!.findGamePartner(userId, widget.entryPrice);
         if (partnerdata.isNotEmpty) {
+          final partnerId = partnerdata.keys.single;
           _timer.cancel();
-          info!.updateGameStatus("Matched",userId);
-          Map<String, dynamic> partner = await info!.createMatch( userId, partnerId,info!.userProfile[userId]!["username"],);
-          Navigator.pop(context); // Close the dialog
-          _navigateToMatchBoard(partner);
+          setState(() {
+            _partnerFound = true;
+            _partner = partnerdata;
+          });
+          _animationController.forward();
+          info!.updateGameStatus("Matched", userId,widget.entryPrice);
+          _startMatchCountdown(partnerId);
         }
       } else {
         _timer.cancel();
@@ -454,35 +486,184 @@ class _CountdownBottomDialogState extends State<CountdownBottomDialog> {
     });
   }
 
+  void _startMatchCountdown(String partnerId) {
+    String gameId = "";
+  _timer = Timer.periodic(Duration(seconds: 1), (timer) async {
+    if (_matchCountdown > 0) {
+      setState(() {
+        _matchCountdown--;
+      });
+    } else {
+      _timer.cancel();
+      try {
+        // First create the match
+        Map<String, dynamic> partner = await info!.createMatch(
+          userId,
+          partnerId,
+          info!.userProfile[userId]!["username"],
+        );
+        
+        // Update match status to indicate this player is ready
+        await info!.updateMatchStatus(partner['gameId'], userId, true);
+        
+        // Start listening for both players to be ready
+        bool bothPlayersReady = false;
+        int attempts = 0;
+        const maxAttempts = 10; // 10 second timeout
+        gameId = partner['gameId'];
+        while (!bothPlayersReady && attempts < maxAttempts) {
+          var matchData = await info!.getMatchStatus(partner['gameId']);
+          String player1Id = partner['gameId'].split("+")[0];
+          String player2Id = partner['gameId'].split("+")[1];
+          if (matchData['${player1Id}Ready'] == true && matchData['${player2Id}Ready'] == true) {
+            bothPlayersReady = true;
+            if (mounted) {
+              Navigator.pop(context);
+              _navigateToMatchBoard(partner);
+            }
+            break;
+          }
+          attempts++;
+          await Future.delayed(Duration(seconds: 1));
+        }
+        
+        // If timeout occurs
+        if (!bothPlayersReady && mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Match start timeout. Please try again.')),
+          );
+          // Reset match status
+          await info!.updateMatchStatus(partner['gameId'], userId, false);
+          await info!.updateGameStatus("DeActive", userId, widget.entryPrice);
+          await info!.deleteMatch(partner['gameId']);
+        }
+      } catch (e) {
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error starting match. Please try again.')),
+          );
+          await info!.updateGameStatus("DeActive", userId, widget.entryPrice);
+          await info!.deleteMatch(gameId);
+        }
+      }
+    }
+  });
+}
+
+
   void _handleTimeout() {
     setState(() {
       _isSearching = false;
     });
-    info!.updateGameStatus("DeActive",userId);
-    Navigator.pop(context); // Close the dialog
+    info!.updateGameStatus("DeActive", userId,widget.entryPrice);
+    Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('No partner found. Please try again later.')),
     );
   }
 
-  void _navigateToMatchBoard(Map<String, dynamic> partner) async {
+  void _navigateToMatchBoard(Map<String, dynamic> partner) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => GoBoardMatch(size: 19, gameId: partner['gameId'], playerId: userId,totalGameTime: widget.time),
+        builder: (context) => GoBoardMatch(
+          size: 13,
+          gameId: partner['gameId'],
+          playerId: userId,
+          totalGameTime: widget.time,
+          entryPrice: widget.entryPrice,
+        ),
       ),
     );
-    
-  }
-
-  @override
-  void dispose() {
-    _timer.cancel();
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_partnerFound) {
+      return Container(
+        color: Colors.black.withOpacity(0.7),
+        child: Center(
+          child: ScaleTransition(
+            scale: _scaleAnimation,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.blue.withOpacity(0.3),
+                    spreadRadius: 5,
+                    blurRadius: 15,
+                    offset: Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(15),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.people_alt_rounded,
+                      size: 50,
+                      color: Colors.blue,
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  Text(
+                    "Partner Found!",
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue,
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  Text(
+                    "Game starts in",
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.blue,
+                        width: 3,
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        "$_matchCountdown",
+                        style: TextStyle(
+                          fontSize: 48,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -498,7 +679,7 @@ class _CountdownBottomDialogState extends State<CountdownBottomDialog> {
               ElevatedButton(
                 onPressed: () {
                   _timer.cancel();
-                  info!.updateGameStatus("DeActive",userId);
+                  info!.updateGameStatus("DeActive", userId,widget.entryPrice);
                   Navigator.pop(context);
                 },
                 child: Icon(Icons.cancel_outlined, color: Colors.white),
@@ -512,19 +693,60 @@ class _CountdownBottomDialogState extends State<CountdownBottomDialog> {
             ],
           ),
           SizedBox(height: 20),
-          Text(
-            "Searching for a partner...",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 20),
-          Text(
-            "$_currentTime",
-            style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
+          Container(
+            padding: EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.blue.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: Column(
+              children: [
+                Icon(
+                  Icons.search,
+                  size: 40,
+                  color: Colors.blue,
+                ),
+                SizedBox(height: 15),
+                Text(
+                  "Searching for a partner...",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue,
+                  ),
+                ),
+                SizedBox(height: 15),
+                Container(
+                  width: 70,
+                  height: 70,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.blue,
+                      width: 2,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      "$_currentTime",
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
           SizedBox(height: 20),
           Text(
             "Please wait while we find a game partner.",
-            style: TextStyle(fontSize: 16, color: Colors.black54),
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[600],
+            ),
           ),
           SizedBox(height: 20),
         ],

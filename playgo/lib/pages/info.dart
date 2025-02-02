@@ -248,20 +248,21 @@ class ItemInfo{
     }
   }
 
- Future<Map<String, Map<String, dynamic>>> findGamePartner(String userId) async {
+ // First, let's modify the findGamePartner function in your info file to check entry prices:
+Future<Map<String, dynamic>> findGamePartner(String userId, String entryPrice) async {
   QuerySnapshot querySnapshot = await _firestore.collection('users').get();
-  var allUserProfile = querySnapshot.docs.map((doc) => {doc.id: doc.data() as Map<String, dynamic>}).toList();
+  var allUserProfile = querySnapshot.docs.map((doc) => {doc.id: doc.data() as Map}).toList();
 
   if (allUserProfile.isNotEmpty) {
     for (var data in allUserProfile) {
       for (var id in data.keys) {
-        if ((id != userId) && (data[id]!['status'] == 'Active')) {
-          // Generate a consistent match ID by sorting the user IDs
-          List<String> users = [userId, id];
+        if ((id != userId) && 
+            (data[id]!['status'] == 'Active') && 
+            (data[id]!['currentEntryPrice'] == entryPrice)) {  // Check matching entry price
+          List users = [userId, id];
           users.sort();
           String matchId = users.join('+');
 
-          // Check if a match already exists between the users
           DocumentSnapshot matchSnapshot = await _firestore.collection('games').doc(matchId).get();
           if (!matchSnapshot.exists) {
             return {id: data[id]!};
@@ -275,58 +276,77 @@ class ItemInfo{
  Future<void> deleteMatch(String matchId) async {
   await _firestore.collection('games').doc(matchId).delete();
 }
-  Future<Map<String, dynamic>> createMatch(String userId, String partnerId,String userIdName) async {
-    // Generate a consistent match ID by sorting the user IDs
-    List<String> users = [userId, partnerId];
-    users.sort();
-    String matchId = users.join('+');
-    String partnerIdName = await getUserName(partnerId);
-    return await _firestore.runTransaction((transaction) async {
-      // Check if the match already exists
-      DocumentSnapshot matchSnapshot = await transaction.get(_firestore.collection('games').doc(matchId));
+  // Add these methods to your existing Firebase service class
 
-      if (matchSnapshot.exists) {
-        // If the match already exists, return it
-        
-          Map<String,dynamic> matchData = matchSnapshot.data() as Map<String, dynamic>;
-          matchData["gameId"] = matchId;
-          return matchData;
-      } else {
-        // If the match does not exist, create a new one
-        Map<String, dynamic> matchData = {
-          'gameId':matchId,
-          "player1Id": userId,
-          "player2Id": partnerId,
-          userId:userIdName,
-          partnerId:partnerIdName,
-          "player1Stone": "black",
-          "player2Stone": "white",
-          "activePlayers":[userId, partnerId],
-          'currentTurn': "black",
-          "createdAt": DateTime.now().toIso8601String(), // Add a timestamp for debugging
-        };
+Future<void> updateMatchStatus(String gameId, String playerId, bool isReady) async {
+  final docRef = _firestore.collection('games').doc(gameId);
+  
+  await docRef.update({
+    '${playerId}Ready': isReady,
+  });
+}
 
-        // Create the match
-        transaction.set(_firestore.collection('games').doc(matchId), matchData);
-        return matchData;
-      }
-    });
-  }
-  Future<void> updateGameStatus(String status,String uuid) async{
-    var userRef = _firestore.collection('users').doc(uuid);
-        await userRef.set({
-          'username': userProfile[uuid!]!['username'],
-          'profileImage': userProfile[uuid!]!['profileImage'],
-          'address': userProfile[uuid!]!["address"],
-          'email': userProfile[uuid!]!['email'],
-          'number': userProfile[uuid!]!['number'],
-          'fund':userProfile[uuid!]!['fund'],
-          'deposit': userProfile[uuid!]!['deposit'],
-          'winning': userProfile[uuid!]!['winning'],
-          'status':status,
-        });
-        userProfile[uuid!]!['status'] = status;
-  }
+Future<Map<String, dynamic>> getMatchStatus(String gameId) async {
+  final docSnapshot = await _firestore.collection('games').doc(gameId).get();
+  return docSnapshot.data() as Map<String, dynamic>;
+}
+
+// Update your existing createMatch method to include ready status fields
+Future<Map<String, dynamic>> createMatch(String userId, String partnerId, String userIdName) async {
+  List<String> users = [userId, partnerId];
+  users.sort();
+  String matchId = users.join('+');
+  String partnerIdName = await getUserName(partnerId);
+
+  return await _firestore.runTransaction((transaction) async {
+    DocumentSnapshot matchSnapshot = await transaction.get(
+      _firestore.collection('games').doc(matchId)
+    );
+
+    if (matchSnapshot.exists) {
+      Map<String, dynamic> matchData = matchSnapshot.data() as Map<String, dynamic>;
+      matchData["gameId"] = matchId;
+      return matchData;
+    } else {
+      Map<String, dynamic> matchData = {
+        'gameId': matchId,
+        "player1Id": userId,
+        "player2Id": partnerId,
+        userId: userIdName,
+        partnerId: partnerIdName,
+        "player1Stone": "black",
+        "player2Stone": "white",
+        "activePlayers": [userId, partnerId],
+        'currentTurn': "black",
+        "createdAt": DateTime.now().toIso8601String(),
+        // Add ready status fields
+        "${userId}Ready": false,
+        "${partnerId}Ready": false,
+      };
+
+      transaction.set(_firestore.collection('games').doc(matchId), matchData);
+      return matchData;
+    }
+  });
+}
+ // Update the updateGameStatus function to include entry price:
+Future updateGameStatus(String status, String uuid, String entryPrice) async {
+  var userRef = _firestore.collection('users').doc(uuid);
+  await userRef.set({
+    'username': userProfile[uuid]!['username'],
+    'profileImage': userProfile[uuid]!['profileImage'],
+    'address': userProfile[uuid]!["address"],
+    'email': userProfile[uuid]!['email'],
+    'number': userProfile[uuid]!['number'],
+    'fund': userProfile[uuid]!['fund'],
+    'deposit': userProfile[uuid]!['deposit'],
+    'winning': userProfile[uuid]!['winning'],
+    'status': status,
+    'currentEntryPrice': entryPrice,  // Add entry price
+  });
+  userProfile[uuid]!['status'] = status;
+  userProfile[uuid]!['currentEntryPrice'] = entryPrice;
+}
 
 
   // Method to remove an order from Firestore
