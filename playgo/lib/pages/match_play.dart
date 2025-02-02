@@ -19,7 +19,8 @@ class GoBoardMatch extends StatefulWidget {
   final String gameId;
   final String playerId;
   final int totalGameTime;
-  const GoBoardMatch({Key? key, required this.size, required this.gameId, required this.playerId , required this.totalGameTime}) : super(key: key);
+  final String entryPrice;
+  const GoBoardMatch({Key? key, required this.size, required this.gameId, required this.playerId , required this.totalGameTime,required this.entryPrice}) : super(key: key);
 
   @override
   State<GoBoardMatch> createState() => _GoMultiplayerBoardState();
@@ -33,8 +34,8 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
   int whiteScore = 0;
   int blackMissedTurns = 0;
   int whiteMissedTurns = 0;
-  int blackTimeLeft = 30; // Timer for black player
-  int whiteTimeLeft = 30; // Timer for white player
+  int blackTimeLeft = 15; // Timer for black player
+  int whiteTimeLeft = 15; // Timer for white player
   int gameTimeLeft = 240; // 4-minute game timer (240 seconds)
   String userName = "";
   String partnerName = '';
@@ -47,7 +48,8 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
   String? player2Stone;
   String currentTurn = 'black'; // Track the current turn
   bool showTurnNotification = false;
-   
+  bool isDialogShowing = false;
+
   @override
   void initState() {
     super.initState();
@@ -95,6 +97,19 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
       if (snapshot.exists) {
         final data = snapshot.data();
         if (data != null) {
+          // Check for forfeit first
+          if (data['status'] == 'ended' && data['endReason'] == 'forfeit') {
+            String forfeitedBy = data['forfeitedBy'];
+            if (forfeitedBy != widget.playerId && !isDialogShowing) {
+              // Show win dialog to the opponent
+              _showWinnerDialog(widget.playerId == player1Id ? player1Stone! : player2Stone!);
+              return;
+            }
+            return; // Skip other updates if game ended by forfeit
+          }
+
+
+          // Regular game updates continue here...
           setState(() {
             // Deserialize the board from Firestore
             final Map<String, dynamic> firestoreBoard = data['board'] ?? {};
@@ -110,22 +125,34 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
               }
             }
 
-            // Update scores and missed turns
+            // Update scores
             blackScore = data['blackScore'] ?? 0;
             whiteScore = data['whiteScore'] ?? 0;
+            
+            // Update missed turns
             blackMissedTurns = data['blackMissedTurns'] ?? 0;
             whiteMissedTurns = data['whiteMissedTurns'] ?? 0;
-            blackTimeLeft = data['blackTimeLeft'] ?? 30; // Update black timer
-            whiteTimeLeft = data['whiteTimeLeft'] ?? 30; // Update white timer
-            currentTurn = data['currentTurn'] ?? 'black'; // Update currentTurn
+            
+            // Update timers
+            blackTimeLeft = data['blackTimeLeft'] ?? 30;
+            whiteTimeLeft = data['whiteTimeLeft'] ?? 30;
+            
+            // Update current turn
+            currentTurn = data['currentTurn'] ?? 'black';
 
+            // Update player information
+            player1Id = data['player1Id'];
+            player2Id = data['player2Id'];
+            player1Stone = data['player1Stone'];
+            player2Stone = data['player2Stone'];
+            
             // Determine if it's the current player's turn
             isPlayerTurn = (currentTurn == 'black' && widget.playerId == player1Id && player1Stone == 'black') ||
                 (currentTurn == 'white' && widget.playerId == player2Id && player2Stone == 'white');
 
+            // Show turn notification if it's player's turn
             if (isPlayerTurn) {
               showTurnNotification = true;
-              // Hide notification after 1 second
               Future.delayed(Duration(seconds: 1), () {
                 if (mounted) {
                   setState(() {
@@ -135,11 +162,15 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
               });
             }
 
+            // Update player names
+            userName = data[player1Id] ?? '';
+            partnerName = data[player2Id] ?? '';
           });
         }
       }
     });
-  }
+}
+
 
   void destroyTheScreen() {
     Navigator.pop(context);
@@ -251,7 +282,12 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
       winner = 'black';
     } else {
       // If no missed turns, then use points
-      winner = blackScore > whiteScore ? 'black' : 'white';
+      if (blackScore == whiteScore){
+        winner = "Both";
+      }
+      else{
+        winner = blackScore > whiteScore ? 'black' : 'white';
+      }
     }
     
     // Update game state
@@ -269,81 +305,158 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
       'activePlayers': [],
     });
     await FirebaseFirestore.instance.collection('games').doc(widget.gameId).delete();
+    info!.updateGameStatus("DeActive",player1Id!,widget.entryPrice);
+    info!.updateGameStatus("DeActive", player2Id!,widget.entryPrice);
+
   }
 
-  void _showWinnerDialog(String winner) {
+   void _showWinnerDialog(String winner) {
+    // If dialog is already showing, don't show another one
+    if (isDialogShowing) return;
+    isDialogShowing = true;
+
     // Determine if current player is the winner
-    bool isCurrentPlayerWinner = (winner == 'black' && player1Stone == 'black' && widget.playerId == player1Id) ||
-                               (winner == 'white' && player2Stone == 'white' && widget.playerId == player2Id);
+    if (winner != "Both"){
+      bool isCurrentPlayerWinner = (winner == 'black' && player1Stone == 'black' && widget.playerId == player1Id) ||
+                                  (winner == 'white' && player2Stone == 'white' && widget.playerId == player2Id);
+                                
+      if (!mounted) return;
 
-    if (!mounted) return;
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Container(
-          padding: EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: isCurrentPlayerWinner 
-                ? [Colors.blue.shade200, Colors.blue.shade400]
-                : [Colors.grey.shade200, Colors.grey.shade400],
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Container(
+            padding: EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isCurrentPlayerWinner 
+                  ? [Colors.blue.shade200, Colors.blue.shade400]
+                  : [Colors.grey.shade200, Colors.grey.shade400],
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  isCurrentPlayerWinner ? Icons.emoji_events : Icons.star,
+                  size: 60,
+                  color: isCurrentPlayerWinner ? Colors.amber : Colors.grey.shade700,
+                ),
+                SizedBox(height: 16),
+                Text(
+                  isCurrentPlayerWinner ? 'Victory!' : 'You Lose',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                SizedBox(height: 12),
+                Text(
+                  isCurrentPlayerWinner
+                    ? 'Congratulations on your win!'
+                    : 'Better luck next time!',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.white.withOpacity(0.9),
+                  ),
+                ),
+                SizedBox(height: 20),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: isCurrentPlayerWinner ? Colors.blue : Colors.grey.shade700,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    destroyTheScreen();
+                  },
+                  child: Text('Continue'),
+                ),
+              ],
             ),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                isCurrentPlayerWinner ? Icons.emoji_events : Icons.star,
-                size: 60,
-                color: isCurrentPlayerWinner ? Colors.amber : Colors.grey.shade700,
+        ),
+      );
+    }
+    else{
+      if (!mounted) return;
+
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Container(
+            padding: EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: 
+                  [Colors.blue.shade200, Colors.blue.shade400]
+                 
               ),
-              SizedBox(height: 16),
-              Text(
-                isCurrentPlayerWinner ? 'Victory!' : 'You Lose',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.emoji_events,
+                  size: 60,
+                  color:  Colors.amber ,
                 ),
-              ),
-              SizedBox(height: 12),
-              Text(
-                isCurrentPlayerWinner
-                  ? 'Congratulations on your win!'
-                  : 'Better luck next time!',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.white.withOpacity(0.9),
-                ),
-              ),
-              SizedBox(height: 20),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: isCurrentPlayerWinner ? Colors.blue : Colors.grey.shade700,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
+                SizedBox(height: 16),
+                Text(
+                  "Draw Match!",
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
-                  padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                 ),
-                onPressed: () {
-                  Navigator.pop(context);
-                  destroyTheScreen();
-                },
-                child: Text('Continue'),
-              ),
-            ],
+                SizedBox(height: 12),
+                Text(
+                  "Sorry Draw The Match,Next time try to win the match!",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.white.withOpacity(0.9),
+                  ),
+                ),
+                SizedBox(height: 20),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor:  Colors.blue ,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    destroyTheScreen();
+                  },
+                  child: Text('Continue'),
+                ),
+              ],
+            ),
           ),
         ),
-      ),
-    );
+      );
+    }
   }
 
 
@@ -370,8 +483,8 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
       'activePlayers': [],
     });
     await FirebaseFirestore.instance.collection('games').doc(widget.gameId).delete();
-    info!.updateGameStatus("DeActive",player1Id!);
-    info!.updateGameStatus("DeActive", player2Id!);
+    info!.updateGameStatus("DeActive",player1Id!,widget.entryPrice);
+    info!.updateGameStatus("DeActive", player2Id!,widget.entryPrice);
   }
 
 
@@ -449,66 +562,316 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
   }
 
   Future<void> _placeStone(int x, int y) async {
-    final gameDoc = FirebaseFirestore.instance.collection('games').doc(widget.gameId);
-    final gameSnapshot = await gameDoc.get();
+  final gameDoc = FirebaseFirestore.instance.collection('games').doc(widget.gameId);
+  final gameSnapshot = await gameDoc.get();
 
-    if (gameSnapshot.exists) {
-      final data = gameSnapshot.data();
-      if (data != null) {
-        String currentTurn = data['currentTurn'] ?? 'black';
+  if (gameSnapshot.exists) {
+    final data = gameSnapshot.data();
+    if (data != null) {
+      String currentTurn = data['currentTurn'] ?? 'black';
 
-        if ((currentTurn == 'black' && widget.playerId == player1Id) ||
-            (currentTurn == 'white' && widget.playerId == player2Id)) {
-          if (board[y][x] != Stone.none) return; // Cell is already occupied
+      if ((currentTurn == 'black' && widget.playerId == player1Id) ||
+          (currentTurn == 'white' && widget.playerId == player2Id)) {
+        
+        // Check if cell is already occupied
+        if (board[y][x] != Stone.none) return;
 
-          setState(() {
-            board[y][x] = currentTurn == 'black' ? Stone.black : Stone.white;
-            if (currentTurn == 'black') {
-              blackTimeLeft = 30;
-            } else {
-              whiteTimeLeft = 30;
-            }
+        // Get current stone color
+        Stone currentStone = currentTurn == 'black' ? Stone.black : Stone.white;
 
-          });
-          
+        // Check for suicide move
+        if (isSuicideMove(board, x, y, currentStone)) {
+          // Show error message to user
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Invalid move: Stone would have no liberties'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+          return;
+        }
 
-          // Check for captures
-          Stone opponent = currentTurn == 'black' ? Stone.white : Stone.black;
-          for (var dir in [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
-            int nx = x + dir[0];
-            int ny = y + dir[1];
-            if (nx >= 0 && nx < widget.size && ny >= 0 && ny < widget.size && board[ny][nx] == opponent) {
-              var opponentGroup = _findGroup(nx, ny, opponent);
-              if (!_hasLiberty(opponentGroup)) {
-                await _captureStones(opponentGroup);
-              }
+        setState(() {
+          board[y][x] = currentStone;
+          if (currentTurn == 'black') {
+            blackTimeLeft = 30;
+          } else {
+            whiteTimeLeft = 30;
+          }
+        });
+
+        // Check for captures
+        Stone opponent = currentTurn == 'black' ? Stone.white : Stone.black;
+        for (var dir in [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+          int nx = x + dir[0];
+          int ny = y + dir[1];
+          if (nx >= 0 && nx < widget.size && ny >= 0 && ny < widget.size && 
+              board[ny][nx] == opponent) {
+            var opponentGroup = _findGroup(nx, ny, opponent);
+            if (!_hasLiberty(opponentGroup)) {
+              await _captureStones(opponentGroup);
             }
           }
+        }
 
-          // Convert the board to a map for Firestore
-          Map<String, String> firestoreBoard = {};
-          for (int y = 0; y < widget.size; y++) {
-            for (int x = 0; x < widget.size; x++) {
-              String key = '$x\_$y';
-              firestoreBoard[key] = board[y][x] == Stone.black
-                  ? 'black'
-                  : board[y][x] == Stone.white
-                      ? 'white'
-                      : 'none';
-            }
+        // Convert board to Firestore format
+        Map<String, String> firestoreBoard = {};
+        for (int y = 0; y < widget.size; y++) {
+          for (int x = 0; x < widget.size; x++) {
+            String key = '$x\_$y';
+            firestoreBoard[key] = board[y][x] == Stone.black
+                ? 'black'
+                : board[y][x] == Stone.white
+                    ? 'white'
+                    : 'none';
           }
+        }
 
-          // Switch turns
-          String nextTurn = currentTurn == 'black' ? 'white' : 'black';
-          await gameDoc.update({
-            'board': firestoreBoard,
-            'currentTurn': nextTurn, // Switch turns
-            'blackTimeLeft': blackTimeLeft, // Update black timer
-            'whiteTimeLeft': whiteTimeLeft, // Update white timer
-          });
+        // Switch turns
+        String nextTurn = currentTurn == 'black' ? 'white' : 'black';
+        await gameDoc.update({
+          'board': firestoreBoard,
+          'currentTurn': nextTurn,
+          'blackTimeLeft': blackTimeLeft,
+          'whiteTimeLeft': whiteTimeLeft,
+        });
+      }
+    }
+  }
+}
+
+ Future<void> _handleGameCancel() async {
+    // Show confirmation dialog
+    bool confirm = await showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Container(
+          padding: EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Colors.red.shade100, Colors.red.shade200],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                spreadRadius: 5,
+                blurRadius: 7,
+                offset: Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.warning_rounded,
+                size: 50,
+                color: Colors.red.shade700,
+              ),
+              SizedBox(height: 16),
+              Text(
+                'End Game?',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red.shade900,
+                ),
+              ),
+              SizedBox(height: 12),
+              Text(
+                'Are you sure you want to end the game? This will count as a forfeit.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.red.shade900.withOpacity(0.8),
+                ),
+              ),
+              SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.grey.shade700,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    ),
+                    child: Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.red.shade700,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    ),
+                    child: Text('End Game'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    ) ?? false;
+
+
+    if (confirm) {
+      _turnTimer?.cancel();
+      _gameTimer?.cancel();
+
+      // Update game state in Firestore to trigger opponent's listener
+      await FirebaseFirestore.instance.collection('games').doc(widget.gameId).update({
+        'status': 'ended',
+        'endReason': 'forfeit',
+        'forfeitedBy': widget.playerId
+      });
+
+      // For the player who clicked cancel - show lose dialog
+      if (mounted) {
+        _showWinnerDialog(widget.playerId == player1Id ? player2Stone! : player1Stone!);
+      }
+
+      // Clean up game after delay
+      await Future.delayed(Duration(seconds: 5));
+      await FirebaseFirestore.instance.collection('games').doc(widget.gameId).update({
+        'activePlayers': [],
+      });
+      await FirebaseFirestore.instance.collection('games').doc(widget.gameId).delete();
+      info!.updateGameStatus("DeActive", player1Id!,widget.entryPrice);
+      info!.updateGameStatus("DeActive", player2Id!,widget.entryPrice);
+    }
+  }
+// Checks if placing a stone would result in suicide (no liberties)
+  static bool isSuicideMove(List<List<Stone>> board, int x, int y, Stone currentStone) {
+    // Temporarily place the stone to check its effect
+    board[y][x] = currentStone;
+    
+    // Get the group that includes the new stone
+    List<List<int>> group = findGroup(board, x, y, currentStone);
+    
+    // Check if this group has any liberties
+    bool hasLiberties = hasLiberty(board, group);
+    
+    // Check if this move captures any opponent groups (which would make it valid)
+    Stone opponentStone = currentStone == Stone.black ? Stone.white : Stone.black;
+    bool capturesOpponent = false;
+    
+    for (var dir in [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+      int nx = x + dir[0];
+      int ny = y + dir[1];
+      if (isValidPosition(board, nx, ny) && board[ny][nx] == opponentStone) {
+        List<List<int>> opponentGroup = findGroup(board, nx, ny, opponentStone);
+        if (!hasLiberty(board, opponentGroup)) {
+          capturesOpponent = true;
+          break;
         }
       }
     }
+    
+    // Remove the temporary stone
+    board[y][x] = Stone.none;
+    
+    // The move is valid if either it has liberties or captures opponent stones
+    return !hasLiberties && !capturesOpponent;
+  }
+
+  // Helper function to check if a position is within the board
+  static bool isValidPosition(List<List<Stone>> board, int x, int y) {
+    return x >= 0 && x < board.length && y >= 0 && y < board.length;
+  }
+
+  // Find all stones in the same group
+  static List<List<int>> findGroup(List<List<Stone>> board, int x, int y, Stone stone) {
+    List<List<int>> group = [];
+    List<List<bool>> visited = List.generate(
+      board.length,
+      (_) => List.filled(board.length, false)
+    );
+
+    void dfs(int i, int j) {
+      if (!isValidPosition(board, i, j) || 
+          visited[j][i] || 
+          board[j][i] != stone) return;
+      
+      visited[j][i] = true;
+      group.add([i, j]);
+      
+      for (var dir in [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+        dfs(i + dir[0], j + dir[1]);
+      }
+    }
+
+    dfs(x, y);
+    return group;
+  }
+
+  // Check if a group has any liberties (empty adjacent points)
+  static bool hasLiberty(List<List<Stone>> board, List<List<int>> group) {
+    for (var pos in group) {
+      for (var dir in [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+        int nx = pos[0] + dir[0];
+        int ny = pos[1] + dir[1];
+        if (isValidPosition(board, nx, ny) && board[ny][nx] == Stone.none) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  // Check if a move violates the Ko rule
+  static bool isKoViolation(List<List<Stone>> board, int x, int y, Stone stone, List<List<Stone>>? previousBoard) {
+    if (previousBoard == null) return false;
+    
+    // Make a copy of the current board and simulate the move
+    List<List<Stone>> newBoard = List.generate(
+      board.length,
+      (i) => List.generate(board[i].length, (j) => board[i][j])
+    );
+    
+    newBoard[y][x] = stone;
+    
+    // Check captures that would result from this move
+    Stone opponent = stone == Stone.black ? Stone.white : Stone.black;
+    for (var dir in [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+      int nx = x + dir[0];
+      int ny = y + dir[1];
+      if (isValidPosition(newBoard, nx, ny) && newBoard[ny][nx] == opponent) {
+        List<List<int>> opponentGroup = findGroup(newBoard, nx, ny, opponent);
+        if (!hasLiberty(newBoard, opponentGroup)) {
+          // Remove captured stones
+          for (var pos in opponentGroup) {
+            newBoard[pos[1]][pos[0]] = Stone.none;
+          }
+        }
+      }
+    }
+    
+    // Compare with previous board state
+    for (int i = 0; i < board.length; i++) {
+      for (int j = 0; j < board.length; j++) {
+        if (newBoard[i][j] != previousBoard[i][j]) {
+          return false;
+        }
+      }
+    }
+    
+    return true;
   }
 
   @override
@@ -527,6 +890,10 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
       backgroundColor: const Color.fromARGB(255, 253, 192, 100),
       appBar: AppBar(
         backgroundColor: const Color.fromARGB(255, 253, 192, 100),
+        leading: IconButton(
+          icon: Icon(Icons.close, color: Colors.red), // X icon
+          onPressed: _handleGameCancel,
+        ),
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
