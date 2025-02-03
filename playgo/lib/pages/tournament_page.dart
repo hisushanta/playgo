@@ -533,7 +533,7 @@ class _CountdownBottomDialogState extends State<CountdownBottomDialog> with Sing
         
         // Update match status to indicate this player is ready
         await info!.updateMatchStatus(partner['gameId'], userId, true);
-        
+
         // Start listening for both players to be ready
         bool bothPlayersReady = false;
         int attempts = 0;
@@ -546,6 +546,7 @@ class _CountdownBottomDialogState extends State<CountdownBottomDialog> with Sing
           if (matchData['${player1Id}Ready'] == true && matchData['${player2Id}Ready'] == true) {
             bothPlayersReady = true;
             if (mounted) {
+              await info!.updateUserFund(userId, double.parse(widget.entryPrice),"dec");
               Navigator.pop(context);
               _navigateToMatchBoard(partner);
             }
@@ -563,7 +564,7 @@ class _CountdownBottomDialogState extends State<CountdownBottomDialog> with Sing
           );
           // Reset match status
           await info!.updateMatchStatus(partner['gameId'], userId, false);
-          await info!.updateGameStatus("DeActive", userId, widget.entryPrice);
+          await info!.updateGameStatus("DeActive", userId, "0.0");
           await info!.deleteMatch(partner['gameId']);
         }
       } catch (e) {
@@ -572,7 +573,7 @@ class _CountdownBottomDialogState extends State<CountdownBottomDialog> with Sing
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Error starting match. Please try again.')),
           );
-          await info!.updateGameStatus("DeActive", userId, widget.entryPrice);
+          await info!.updateGameStatus("DeActive", userId, '0.0');
           await info!.deleteMatch(gameId);
         }
       }
@@ -585,7 +586,7 @@ class _CountdownBottomDialogState extends State<CountdownBottomDialog> with Sing
     setState(() {
       _isSearching = false;
     });
-    info!.updateGameStatus("DeActive", userId,widget.entryPrice);
+    info!.updateGameStatus("DeActive", userId,"0.0");
     Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('No partner found. Please try again later.')),
@@ -708,7 +709,7 @@ class _CountdownBottomDialogState extends State<CountdownBottomDialog> with Sing
               ElevatedButton(
                 onPressed: () {
                   _timer.cancel();
-                  info!.updateGameStatus("DeActive", userId,widget.entryPrice);
+                  info!.updateGameStatus("DeActive", userId,"0.0");
                   Navigator.pop(context);
                 },
                 child: Icon(Icons.cancel_outlined, color: Colors.white),

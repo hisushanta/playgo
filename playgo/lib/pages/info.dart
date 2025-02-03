@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
 
+import 'package:playgo/pages/home.dart';
+
 
 class ItemInfo{
   String? uuid;
@@ -173,7 +175,26 @@ class ItemInfo{
           itemStore.add(item[key]);
         }
         itemInfo[uuid!] = itemStore;
+
+
       });
+          // New listener for user profile changes
+        _firestore.collection('users').doc(uuid).snapshots().listen((snapshot) {
+          if (snapshot.exists) {
+            userProfile[uuid!] = {
+              'username': snapshot['username'],
+              'profileImage': snapshot['profileImage'],
+              'address': snapshot['address'],
+              'email': snapshot['email'],
+              'number': snapshot['number'],
+              'fund': snapshot['fund'],
+              'deposit': snapshot['deposit'],
+              'winning': snapshot['winning'],
+              'status': snapshot['status'],
+              'currentEntryPrice': snapshot['currentEntryPrice'],
+            };
+          }
+        });
     //   // Listen to alert changes
     //   _firestore.collection('users').doc(uuid).collection('order').snapshots().listen((snapshot) {
     //     var item = snapshot.docs.map((doc) {
@@ -339,9 +360,46 @@ Future updateGameStatus(String status, String uuid, String entryPrice) async {
     'status': status,
     'currentEntryPrice': entryPrice,  // Add entry price
   },SetOptions(merge: true));
-  // userProfile[uuid]!['status'] = status;
-  // userProfile[uuid]!['currentEntryPrice'] = entryPrice;
 }
+Future<void> updateUserFund(String userId, double amount, [String category = "add"]) async {
+    try {
+      final userDoc = FirebaseFirestore.instance.collection('users').doc(userId);
+      
+      // Use a transaction to ensure atomic updates
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
+        final userSnapshot = await transaction.get(userDoc);
+        
+        if (!userSnapshot.exists) {
+          throw Exception('User not found');
+        }
+
+        // Get current fund amount
+        double currentFund = double.parse(userSnapshot.data()?['fund']);
+        
+        // Calculate new fund amount
+        double newFund;
+        if (category == 'add'){
+          newFund = currentFund + amount;
+        } else {
+          newFund = currentFund - amount;
+        }
+        // Ensure fund doesn't go below 0
+        if (newFund < 0) {
+          throw Exception('Insufficient funds');
+        }
+
+        // Update the fund
+        transaction.update(userDoc, {
+          'fund': newFund.toString(),
+        });
+        
+      });
+
+
+    } catch (e) {
+      rethrow; // Rethrow to handle in the calling function
+    }
+  }
 
 
   // Method to remove an order from Firestore
