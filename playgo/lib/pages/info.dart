@@ -103,7 +103,8 @@ class ItemInfo{
           'fund': userProfileData['fund'],
           'deposit': userProfileData['deposit'],
           'winning': userProfileData['winning'],
-          'status': userProfileData['status']
+          'status': userProfileData['status'],
+          'currentEntryPrice':userProfileData['currentEntryPrice'],
         };
       } catch(e){
         updateUserProfile("Unknown", "assets/mainIcon.png", '','','','');
@@ -219,7 +220,7 @@ class ItemInfo{
         return false;
       }
   }
-  Future<void> updateUserProfile(String username, String profileImage, String address,String email, String number,String fund,[String deposit = '0.0',String winning = '0.0',String gameStatus = "DeActive"]) async {
+  Future<void> updateUserProfile(String username, String profileImage, String address,String email, String number,String fund,[String deposit = '0.0',String winning = '0.0',String gameStatus = "DeActive",String currentEntryPrice="0.0"]) async {
     if (uuid != null) {
       var userRef = _firestore.collection('users').doc(uuid);
       await userRef.set({
@@ -231,7 +232,8 @@ class ItemInfo{
         'fund':fund,
         'deposit':deposit,
         'winning':winning,
-        'status':gameStatus
+        'status':gameStatus,
+        'currentEntryPrice':currentEntryPrice
       }, SetOptions(merge: true));
       // Update local data
       userProfile[uuid!] = {
@@ -243,7 +245,8 @@ class ItemInfo{
         'fund': fund,
         'deposit': deposit,
         'winning':winning,
-        'status':gameStatus
+        'status':gameStatus,
+        'currentEntryPrice':currentEntryPrice
       };
     }
   }
@@ -333,19 +336,11 @@ Future<Map<String, dynamic>> createMatch(String userId, String partnerId, String
 Future updateGameStatus(String status, String uuid, String entryPrice) async {
   var userRef = _firestore.collection('users').doc(uuid);
   await userRef.set({
-    'username': userProfile[uuid]!['username'],
-    'profileImage': userProfile[uuid]!['profileImage'],
-    'address': userProfile[uuid]!["address"],
-    'email': userProfile[uuid]!['email'],
-    'number': userProfile[uuid]!['number'],
-    'fund': userProfile[uuid]!['fund'],
-    'deposit': userProfile[uuid]!['deposit'],
-    'winning': userProfile[uuid]!['winning'],
     'status': status,
     'currentEntryPrice': entryPrice,  // Add entry price
-  });
-  userProfile[uuid]!['status'] = status;
-  userProfile[uuid]!['currentEntryPrice'] = entryPrice;
+  },SetOptions(merge: true));
+  // userProfile[uuid]!['status'] = status;
+  // userProfile[uuid]!['currentEntryPrice'] = entryPrice;
 }
 
 

@@ -20,7 +20,8 @@ class GoBoardMatch extends StatefulWidget {
   final String playerId;
   final int totalGameTime;
   final String entryPrice;
-  const GoBoardMatch({Key? key, required this.size, required this.gameId, required this.playerId , required this.totalGameTime,required this.entryPrice}) : super(key: key);
+  final String prizePool;
+  const GoBoardMatch({Key? key, required this.size, required this.gameId, required this.playerId , required this.totalGameTime,required this.entryPrice,required this.prizePool}) : super(key: key);
 
   @override
   State<GoBoardMatch> createState() => _GoMultiplayerBoardState();
@@ -289,7 +290,8 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
         winner = blackScore > whiteScore ? 'black' : 'white';
       }
     }
-    
+    info!.updateGameStatus("DeActive",player1Id!,"0.0");
+    info!.updateGameStatus("DeActive", player2Id!,"0.0");
     // Update game state
     await FirebaseFirestore.instance.collection('games').doc(widget.gameId).update({
       'status': 'ended',
@@ -305,8 +307,7 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
       'activePlayers': [],
     });
     await FirebaseFirestore.instance.collection('games').doc(widget.gameId).delete();
-    info!.updateGameStatus("DeActive",player1Id!,widget.entryPrice);
-    info!.updateGameStatus("DeActive", player2Id!,widget.entryPrice);
+    
 
   }
 
@@ -467,7 +468,8 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
     _gameTimer?.cancel();
 
     String winner = blackMissedTurns >= 3 ? 'white' : 'black';
-    
+    info!.updateGameStatus("DeActive",player1Id!,"0.0");
+    info!.updateGameStatus("DeActive", player2Id!,"0.0");
     // Update game state
     await FirebaseFirestore.instance.collection('games').doc(widget.gameId).update({
       'status': 'ended',
@@ -483,8 +485,7 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
       'activePlayers': [],
     });
     await FirebaseFirestore.instance.collection('games').doc(widget.gameId).delete();
-    info!.updateGameStatus("DeActive",player1Id!,widget.entryPrice);
-    info!.updateGameStatus("DeActive", player2Id!,widget.entryPrice);
+    
   }
 
 
@@ -733,7 +734,8 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
     if (confirm) {
       _turnTimer?.cancel();
       _gameTimer?.cancel();
-
+      info!.updateGameStatus("DeActive",player1Id!,"0.0");
+      info!.updateGameStatus("DeActive", player2Id!,"0.0");
       // Update game state in Firestore to trigger opponent's listener
       await FirebaseFirestore.instance.collection('games').doc(widget.gameId).update({
         'status': 'ended',
@@ -752,8 +754,7 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
         'activePlayers': [],
       });
       await FirebaseFirestore.instance.collection('games').doc(widget.gameId).delete();
-      info!.updateGameStatus("DeActive", player1Id!,widget.entryPrice);
-      info!.updateGameStatus("DeActive", player2Id!,widget.entryPrice);
+      
     }
   }
 // Checks if placing a stone would result in suicide (no liberties)
@@ -891,35 +892,113 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
       appBar: AppBar(
         backgroundColor: const Color.fromARGB(255, 253, 192, 100),
         leading: IconButton(
-          icon: Icon(Icons.close, color: Colors.red), // X icon
+          icon: Icon(Icons.close, color: Colors.red,), // X icon
           onPressed: _handleGameCancel,
         ),
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Go Multiplayer',
-              style: TextStyle(fontWeight: FontWeight.bold, fontStyle: FontStyle.italic),
+        centerTitle: true,
+        title: Container(
+          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color(0xFF6A11CB), // Rich purple
+                Color(0xFF2575FC), // Bright blue
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-            Container(
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(15),
+            borderRadius: BorderRadius.circular(25),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 8,
+                offset: Offset(0, 4),
               ),
-              child: Row(
+              BoxShadow(
+                color: Colors.white.withOpacity(0.1),
+                blurRadius: 4,
+                offset: Offset(0, -1),
+              ),
+            ],
+            border: Border.all(
+              color: Colors.white.withOpacity(0.2),
+              width: 1.5,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ShaderMask(
+                shaderCallback: (Rect bounds) {
+                  return LinearGradient(
+                    colors: [Colors.amber[300]!, Colors.amber[500]!],
+                  ).createShader(bounds);
+                },
+                child: Icon(
+                  Icons.emoji_events,
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
+              SizedBox(width: 10),
+              Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.timer, size: 20),
-                  SizedBox(width: 8),
                   Text(
-                    '${gameTimeLeft ~/ 60}:${(gameTimeLeft % 60).toString().padLeft(2, '0')}',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    'Prize Pool',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.9),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  Text(
+                    '₹${widget.prizePool}',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
+                      shadows: [
+                        Shadow(
+                          color: Colors.black.withOpacity(0.3),
+                          offset: Offset(0, 2),
+                          blurRadius: 4,
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
-            ),
-          ],
+            ],
+          ),
         ),
+        actions: [
+          Container(
+            margin: EdgeInsets.only(right: 16),
+            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.timer, size: 18, color: Colors.white),
+                SizedBox(width: 6),
+                Text(
+                  '${gameTimeLeft ~/ 60}:${(gameTimeLeft % 60).toString().padLeft(2, '0')}',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      
       ),
       body: LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
