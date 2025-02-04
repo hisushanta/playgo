@@ -64,6 +64,7 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
     _initializePlayers();
   }
 
+
   void _initializeBoard() {
     board = List.generate(widget.size, (_) => List.filled(widget.size, Stone.none));
 
@@ -277,17 +278,39 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
 
     // Determine winner based on missed turns, not points
     String winner;
+    String winnerId;
+
     if (blackMissedTurns >= 3) {
       winner = 'white';
-    } else if (whiteMissedTurns >= 3) {
+      winnerId = winner == 'black' 
+            ? (player1Stone == 'black' ? player1Id! : player2Id!)
+            : (player1Stone == 'white' ? player1Id! : player2Id!);
+      if (winnerId == userId){
+            await info!.updateUserFund(userId, double.parse(widget.prizePool));
+      }
+    } 
+      else if (whiteMissedTurns >= 3) {
       winner = 'black';
+      winnerId = winner == 'black' 
+            ? (player1Stone == 'black' ? player1Id! : player2Id!)
+            : (player1Stone == 'white' ? player1Id! : player2Id!);
+      if (winnerId == userId){
+            await info!.updateUserFund(userId, double.parse(widget.prizePool));
+        }
     } else {
       // If no missed turns, then use points
       if (blackScore == whiteScore){
         winner = "Both";
+        await info!.updateUserFund(userId, double.parse(widget.entryPrice));
       }
       else{
         winner = blackScore > whiteScore ? 'black' : 'white';
+        winnerId = winner == 'black' 
+            ? (player1Stone == 'black' ? player1Id! : player2Id!)
+            : (player1Stone == 'white' ? player1Id! : player2Id!);
+        if (winnerId == userId){
+            await info!.updateUserFund(userId, double.parse(widget.prizePool));
+        }
       }
     }
     info!.updateGameStatus("DeActive",player1Id!,"0.0");
@@ -734,6 +757,10 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
     if (confirm) {
       _turnTimer?.cancel();
       _gameTimer?.cancel();
+      // Determine winner and distribute prize
+      String winnerId = widget.playerId == player1Id ? player2Id! : player1Id!;
+      await info!.updateUserFund(winnerId, double.parse(widget.prizePool));
+
       info!.updateGameStatus("DeActive",player1Id!,"0.0");
       info!.updateGameStatus("DeActive", player2Id!,"0.0");
       // Update game state in Firestore to trigger opponent's listener
