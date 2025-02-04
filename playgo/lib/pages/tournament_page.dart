@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:playgo/main.dart';
+import 'package:playgo/pages/wallet_pages.dart';
 import 'fund_page.dart';
 import 'home.dart';
 import 'match_play.dart';
@@ -19,20 +20,56 @@ class GameTournamentPage extends State<TournamentPage> {
   List<Map<String, String>> tournaments = [];
   List<Map<String, String>> filteredTournaments = [];
   String? selectedSortOption; // Holds the currently selected sort option
+  String fundBalance = '0.0';
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
-    // Initialize tournaments list
-    tournaments = (info!.itemInfo[userId]! as List<dynamic>).map((tournament) {
-      return {
-        "entryPrice": tournament[0].toString(),
-        "prizePools": tournament[1].toString(),
-        "category": tournament[2].toString(),
-        "time":tournament[3].toString(),
-      };
-    }).toList();
-    filteredTournaments = List.from(tournaments); // Default to showing all items
+    _loadData();
+    // Set up periodic refresh
+    _refreshTimer = Timer.periodic(Duration(seconds: 5), (_) => _loadData());
+  }
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  void _loadData() {
+    if (!mounted) return;
+    setState(() {
+      fundBalance = info!.userProfile[userId]!['fund'];
+      tournaments = (info!.itemInfo[userId]! as List<dynamic>).map((tournament) {
+        return {
+          "entryPrice": tournament[0].toString(),
+          "prizePools": tournament[1].toString(),
+          "category": tournament[2].toString(),
+          "time": tournament[3].toString(),
+        };
+      }).toList();
+      filteredTournaments = List.from(tournaments);
+      
+      // Reapply current filter
+      if (isregularCheck) {
+        filteredTournaments = tournaments
+            .where((tournament) => tournament["category"] == "Regular")
+            .toList();
+      }
+      
+      // Reapply current sort
+      if (selectedSortOption == "low_to_high") {
+        filteredTournaments.sort((a, b) =>
+            int.parse(a["entryPrice"]!).compareTo(int.parse(b["entryPrice"]!)));
+      } else if (selectedSortOption == "high_to_low") {
+        filteredTournaments.sort((a, b) =>
+            int.parse(b["entryPrice"]!).compareTo(int.parse(a["entryPrice"]!)));
+      }
+    });
+  }
+
+  void updateFund(){
+    _loadData();
   }
 
   void applyFilter(String filter) {
@@ -73,32 +110,51 @@ class GameTournamentPage extends State<TournamentPage> {
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 240, 246, 247),
       appBar: AppBar(
-        title: Text('Play Match', style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.white,
         actions: [
-          GestureDetector(
-            child: Padding ( 
+          Padding ( 
               padding: EdgeInsets.all(8.0),
               child: Row(
               children: [
-                Icon(Icons.currency_rupee, color: Colors.black, size: 16.0),
-                Text(
-                  '${info!.userProfile[info!.uuid]!['fund']}',
-                  style: TextStyle(color: Colors.black),
-                ),
-                SizedBox(width: 20),
-                CircleAvatar(
-                  backgroundColor: Color.fromARGB(255, 213, 246, 206),
-                  radius: 14,
-                  child: Icon(Icons.add, color: Colors.black, size: 18),
-                ),
+                 // Add Cash Button
+          ElevatedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => WalletPage()),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: Colors.green,
+              side: BorderSide(color: Colors.lightGreenAccent),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+            child: Text('₹$fundBalance'),
+          ),
+          SizedBox(width: 8), // Reduced space between buttons
+          // Wallet Button
+          ElevatedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => AddCashPage()),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: Colors.orange,
+              side: BorderSide(color: Colors.orangeAccent),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+            child: Icon(Icons.add,color: Colors.orange,),
+          ),
               ],
             ),
-            ),
-            onTap: () {
-              Navigator.push(
-                  context, MaterialPageRoute(builder: (context) => AddCashPage()));
-            },
           ),
         ],
       ),
@@ -344,7 +400,7 @@ class GameTournamentPage extends State<TournamentPage> {
                                   // Join Now Button
                                     ElevatedButton(
                               onPressed: () {
-                                if(double.parse(info!.userProfile[userId]!["fund"]) >= double.parse(entryPrice)) {
+                                if(double.parse(fundBalance) >= double.parse(entryPrice)) {
                                   Navigator.pop(context);
                                   info!.updateGameStatus("Active", userId, entryPrice);
                                   showModalBottomSheet(
@@ -362,6 +418,7 @@ class GameTournamentPage extends State<TournamentPage> {
                                           time: int.parse(time),
                                           entryPrice: entryPrice,
                                           prizePool: prizePools,
+                                          updateFund: updateFund,
                                         ),
                                       );
                                     },
@@ -440,12 +497,14 @@ class CountdownBottomDialog extends StatefulWidget {
   final int time;
   final String entryPrice;
   final String prizePool;
-  const CountdownBottomDialog({
-    Key? key, 
+  Function updateFund;
+  CountdownBottomDialog({
+    super.key, 
     required this.time,
     required this.entryPrice,
     required this.prizePool,
-  }) : super(key: key);
+    required this.updateFund,
+  });
   
   @override
   _CountdownBottomDialogState createState() => _CountdownBottomDialogState();
@@ -606,7 +665,9 @@ class _CountdownBottomDialogState extends State<CountdownBottomDialog> with Sing
           prizePool: widget.prizePool,
         ),
       ),
-    );
+    ).then((_) {
+      widget.updateFund();
+    });
   }
 
   @override
