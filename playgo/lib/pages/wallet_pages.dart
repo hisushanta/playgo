@@ -2,8 +2,30 @@ import 'package:flutter/material.dart';
 import 'package:playgo/main.dart';
 import 'package:playgo/pages/fund_page.dart';
 import 'home.dart';
+class WalletPage extends StatefulWidget {
+  @override
+  _WalletPage createState() => _WalletPage();
+}
 
-class WalletPage extends StatelessWidget {
+class _WalletPage extends State<WalletPage> {
+  String fundBalance = "0.0";
+  String deposit = "0.0";
+  String winning = '0.0';
+  @override
+  void initState() {
+    _loadData();
+    super.initState();
+  }
+
+  void _loadData() {
+  if (!mounted) return;
+  setState(() {
+    fundBalance = info!.userProfile[info!.uuid]?['fund'] ?? '0.0'; // Provide a default value
+    deposit = info!.userProfile[info!.uuid]?['deposit'] ?? '0.0'; // Provide a default value
+    winning = info!.userProfile[info!.uuid]?['winning'] ?? '0.0'; // Provide a default value
+  });
+}
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -28,9 +50,9 @@ class WalletPage extends StatelessWidget {
           children: [
             _buildBalanceCard(),
             SizedBox(height: 16),
-            _buildSection('Deposits', '₹${info!.userProfile[userId]!['deposit']}', 'Add Cash', Colors.green, Icons.add,context),
+            _buildSection('Deposits', '₹$deposit', 'Add Cash', Colors.green, Icons.add,context),
             SizedBox(height: 16),
-            _buildSection('Winnings', '₹${info!.userProfile[userId]!['winning']}', 'Withdraw', Colors.orange, Icons.arrow_downward,context),
+            _buildSection('Winnings', '₹$winning', 'Withdraw', Colors.orange, Icons.arrow_downward,context),
             SizedBox(height: 16),
             _buildInfoSection('Cashback Reward', '₹1.32', 'CASHBACK DETAILS'),
             SizedBox(height: 16),
@@ -73,7 +95,7 @@ class WalletPage extends StatelessWidget {
           ),
           SizedBox(height: 8),
           Text(
-            '${info!.userProfile[userId]!['fund']}',
+            fundBalance,
             style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.black),
           ),
         ],
@@ -109,7 +131,7 @@ class WalletPage extends StatelessWidget {
           ElevatedButton.icon(
             onPressed: () {
               if (actionText == 'Add Cash'){
-                Navigator.push(context, MaterialPageRoute(builder: (context) => AddCashPage()));
+                Navigator.push(context, MaterialPageRoute(builder: (context) => AddCashPage())).then((_) => _loadData());
               }
             },
             icon: Icon(icon, color: Colors.white, size: 16),

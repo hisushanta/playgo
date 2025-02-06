@@ -287,6 +287,7 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
             : (player1Stone == 'white' ? player1Id! : player2Id!);
       if (winnerId == userId){
             await info!.updateUserFund(userId, double.parse(widget.prizePool));
+            await info!.updateUserWinning(userId, double.parse(widget.prizePool));
       }
     } 
       else if (whiteMissedTurns >= 3) {
@@ -296,6 +297,8 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
             : (player1Stone == 'white' ? player1Id! : player2Id!);
       if (winnerId == userId){
             await info!.updateUserFund(userId, double.parse(widget.prizePool));
+            await info!.updateUserWinning(userId, double.parse(widget.prizePool));
+
         }
     } else {
       // If no missed turns, then use points
@@ -310,6 +313,8 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
             : (player1Stone == 'white' ? player1Id! : player2Id!);
         if (winnerId == userId){
             await info!.updateUserFund(userId, double.parse(widget.prizePool));
+            await info!.updateUserWinning(userId, double.parse(widget.prizePool));
+
         }
       }
     }
@@ -710,7 +715,7 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
               ),
               SizedBox(height: 12),
               Text(
-                'Are you sure you want to end the game? This will count as a forfeit.',
+                'Are you sure you wish to exit? This will result in a loss of your money.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 16,
@@ -760,6 +765,7 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
       // Determine winner and distribute prize
       String winnerId = widget.playerId == player1Id ? player2Id! : player1Id!;
       await info!.updateUserFund(winnerId, double.parse(widget.prizePool));
+      await info!.updateUserWinning(winnerId, double.parse(widget.prizePool));
 
       info!.updateGameStatus("DeActive",player1Id!,"0.0");
       info!.updateGameStatus("DeActive", player2Id!,"0.0");
