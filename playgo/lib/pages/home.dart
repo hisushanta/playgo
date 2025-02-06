@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:playgo/main.dart';
@@ -83,7 +85,36 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-class GoGameHomePage extends StatelessWidget {
+class GoGameHomePage extends StatefulWidget {
+  @override
+  _GoGameHomePageState createState() => _GoGameHomePageState();
+}
+
+class _GoGameHomePageState extends State<GoGameHomePage>{
+
+  Timer? _refreshTimer;
+  String fundBalance = '0.0';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+    _refreshTimer = Timer.periodic(Duration(seconds: 3), (_) => _loadData());
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  void _loadData() {
+  if (!mounted) return;
+  setState(() {
+    fundBalance = info!.userProfile[info!.uuid]?['fund'] ?? '0.0'; // Provide a default value
+  });
+}
+
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder(
@@ -121,7 +152,7 @@ class GoGameHomePage extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => WalletPage()),
-              );
+              ).then((_) => _loadData());
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
@@ -131,7 +162,7 @@ class GoGameHomePage extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
               ),
             ),
-            child: Text('₹${info!.userProfile[info!.uuid]!['fund']}'),
+            child: Text('₹$fundBalance'),
           ),
           SizedBox(width: 8), // Reduced space between buttons
           // Wallet Button
@@ -140,7 +171,7 @@ class GoGameHomePage extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => AddCashPage()),
-              );
+              ).then((_) => _loadData());
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
@@ -205,7 +236,7 @@ class GoGameHomePage extends StatelessWidget {
                           onPressed: () {
                             Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) =>  TournamentPage()),);
+                            MaterialPageRoute(builder: (context) =>  TournamentPage()),).then((_) => _loadData());
                           },
                           child: Padding(
                             padding: EdgeInsets.symmetric(horizontal: 40, vertical: 10),
@@ -267,7 +298,7 @@ class GoGameHomePage extends StatelessWidget {
                       ),
                     ),
                     onTap: (){
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const GoBoard(size: 19)));
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const GoBoard(size: 19))).then((_) => _loadData());;
                     },
                     ),
                   ),
@@ -319,7 +350,7 @@ class GoGameHomePage extends StatelessWidget {
                       ),
                     ),
                     onTap: (){
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const GoAIBoard(size: 19)));
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const GoAIBoard(size: 19))).then((_) => _loadData());;
                     },
                     ),
                   ),
