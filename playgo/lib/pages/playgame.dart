@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 enum Stone { none, black, white }
@@ -75,17 +74,15 @@ class _GoBoardState extends State<GoBoard> {
   }
 
   void _captureStones(List<List<int>> group) {
-  for (var pos in group) {
-    board[pos[1]][pos[0]] = Stone.none;
+    for (var pos in group) {
+      board[pos[1]][pos[0]] = Stone.none;
+    }
+    if (currentPlayer == Stone.black) {
+      blackScore += group.length;
+    } else {
+      whiteScore += group.length;
+    }
   }
-  // Update the score for the capturing player
-  if (currentPlayer == Stone.black) {
-    blackScore += group.length;
-  } else {
-    whiteScore += group.length;
-  }
-}
-
 
   bool _isValidMove(int x, int y) {
     if (x < 0 || x >= widget.size || y < 0 || y >= widget.size || board[y][x] != Stone.none) return false;
@@ -144,6 +141,9 @@ class _GoBoardState extends State<GoBoard> {
       _calculateScore();
     });
   }
+  void distroyTheScreen(){
+    Navigator.pop(context); // Return to the home screen
+  }
 
   void _calculateScore() {
     blackScore = 0;
@@ -194,12 +194,84 @@ class _GoBoardState extends State<GoBoard> {
       }
     }
   }
-   double _getIntersectionX(int x, double cellSize, double padding) {
+
+  double _getIntersectionX(int x, double cellSize, double padding) {
     return x * cellSize + padding;
   }
 
   double _getIntersectionY(int y, double cellSize, double padding) {
     return y * cellSize + padding;
+  }
+
+  void _showExitDialog() {
+    String winner = blackScore > whiteScore ? "Black" : blackScore == whiteScore ? "Draw":"White";
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.emoji_events,
+                  color: Colors.amber,
+                  size: 50,
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  winner=="Draw"? "$winner Match":"$winner Wins!",
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  "Black: $blackScore | White: $whiteScore",
+                  style: const TextStyle(
+                    fontSize: 18,
+                    color: Colors.grey,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(); // Close the dialog
+                    distroyTheScreen();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Text(
+                    "Close",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -208,12 +280,34 @@ class _GoBoardState extends State<GoBoard> {
       backgroundColor: const Color.fromARGB(255, 253, 192, 100),
       appBar: AppBar(
         backgroundColor: const Color.fromARGB(255, 253, 192, 100),
-        title: const Center(
-          child: Text(
+        title: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Colors.blue, Colors.purple],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: const Text(
             'Battle Ground',
-            style: TextStyle(fontWeight: FontWeight.bold, fontStyle: FontStyle.italic),
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              fontStyle: FontStyle.italic,
+              color: Colors.white,
+            ),
           ),
         ),
+        centerTitle: true,
+        automaticallyImplyLeading: false, // Remove the back arrow
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.exit_to_app, color: Colors.white),
+            onPressed: _showExitDialog,
+          ),
+        ],
       ),
       body: LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
@@ -226,96 +320,144 @@ class _GoBoardState extends State<GoBoard> {
           double cellSize = boardSize / (widget.size - 1);
           double stoneSize = cellSize * 0.8;
 
-          return SingleChildScrollView(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Text(
-                    "Current Turn: ${currentPlayer == Stone.black ? 'Black' : 'White'}",
-                  ),
-                ),
-                Center(
-                  child: SizedBox(
-                    width: boardSize + padding * 2,
-                    height: boardSize + padding * 2,
-                    child: Stack(
-                      children: [
-                        Container(
-                          width: boardSize + padding * 2,
-                          height: boardSize + padding * 2,
-                          color: const Color(0xFFD3B07C), // Light brown color
-                        ),
-                        for (int i = 0; i < widget.size; i++)
-                          Positioned(
-                            top: _getIntersectionY(i, cellSize, padding) - 0.5,
-                            left: padding,
-                            width: boardSize,
-                            child: Container(
-                              height: 1,
-                              color: Colors.black, // Black grid lines
-                            ),
-                          ),
-                        for (int i = 0; i < widget.size; i++)
-                          Positioned(
-                            left: _getIntersectionX(i, cellSize, padding) - 0.5,
-                            top: padding,
-                            height: boardSize,
-                            child: Container(
-                              width: 1,
-                              color: Colors.black, // Black grid lines
-                            ),
-                          ),
-                        if (widget.size == 9 || widget.size == 13 || widget.size == 19)
-                          ..._buildHoshi(cellSize, padding),
-                        for (int y = 0; y < widget.size; y++)
-                          for (int x = 0; x < widget.size; x++)
-                            if (board[y][x] != Stone.none)
-                              Positioned(
-                                top: _getIntersectionY(y, cellSize, padding) - stoneSize / 2,
-                                left: _getIntersectionX(x, cellSize, padding) - stoneSize / 2,
-                                child: _buildStone(board[y][x], stoneSize),
-                              ),
-                        GridView.builder(
-                          physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: widget.size,
-                          ),
-                          itemCount: widget.size * widget.size,
-                          itemBuilder: (context, index) {
-                            int x = index % widget.size;
-                            int y = index ~/ widget.size;
-                            return GestureDetector(
-                              onTap: () => _placeStone(x, y),
-                              child: Container(
-                                color: Colors.transparent,
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
+          return Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // White Player Card (Above the Board)
+              Card(
+                margin: const EdgeInsets.all(10),
+                elevation: 5,
+                color: Colors.grey[200], // Light gray background for better visibility
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text("Black: $blackScore"),
-                      Text("White: $whiteScore"),
+                      // Circular Indicator Around White Stone Icon
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: currentPlayer == Stone.white ? Colors.green : Colors.grey,
+                            width: 2,
+                          ),
+                        ),
+                        child: const Icon(Icons.circle, color: Colors.white, size: 30),
+                      ),
+                      Text(
+                        "White: $whiteScore",
+                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
                     ],
                   ),
                 ),
-              ],
-            ),
+              ),
+
+              const SizedBox(height: 20), // Gap between card and board
+
+              // Board
+              Center(
+                child: SizedBox(
+                  width: boardSize + padding * 2,
+                  height: boardSize + padding * 2,
+                  child: Stack(
+                    children: [
+                      Container(
+                        width: boardSize + padding * 2,
+                        height: boardSize + padding * 2,
+                        color: const Color(0xFFD3B07C), // Light brown color
+                      ),
+                      for (int i = 0; i < widget.size; i++)
+                        Positioned(
+                          top: _getIntersectionY(i, cellSize, padding) - 0.5,
+                          left: padding,
+                          width: boardSize,
+                          child: Container(
+                            height: 1,
+                            color: Colors.black, // Black grid lines
+                          ),
+                        ),
+                      for (int i = 0; i < widget.size; i++)
+                        Positioned(
+                          left: _getIntersectionX(i, cellSize, padding) - 0.5,
+                          top: padding,
+                          height: boardSize,
+                          child: Container(
+                            width: 1,
+                            color: Colors.black, // Black grid lines
+                          ),
+                        ),
+                      if (widget.size == 9 || widget.size == 13 || widget.size == 19)
+                        ..._buildHoshi(cellSize, padding),
+                      for (int y = 0; y < widget.size; y++)
+                        for (int x = 0; x < widget.size; x++)
+                          if (board[y][x] != Stone.none)
+                            Positioned(
+                              top: _getIntersectionY(y, cellSize, padding) - stoneSize / 2,
+                              left: _getIntersectionX(x, cellSize, padding) - stoneSize / 2,
+                              child: _buildStone(board[y][x], stoneSize),
+                            ),
+                      GridView.builder(
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: widget.size,
+                        ),
+                        itemCount: widget.size * widget.size,
+                        itemBuilder: (context, index) {
+                          int x = index % widget.size;
+                          int y = index ~/ widget.size;
+                          return GestureDetector(
+                            onTap: () => _placeStone(x, y),
+                            child: Container(
+                              color: Colors.transparent,
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 20), // Gap between board and card
+
+              // Black Player Card (Below the Board)
+              Card(
+                margin: const EdgeInsets.all(10),
+                elevation: 5,
+                color: Colors.grey[200], // Light gray background for better visibility
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Circular Indicator Around Black Stone Icon
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: currentPlayer == Stone.black ? Colors.green : Colors.grey,
+                            width: 2,
+                          ),
+                        ),
+                        child: const Icon(Icons.circle, color: Colors.black, size: 30),
+                      ),
+                      Text(
+                        "Black: $blackScore",
+                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           );
         },
       ),
     );
   }
-
 
   List<Widget> _buildHoshi(double cellSize, double padding) {
     List<Widget> hoshi = [];
@@ -350,8 +492,6 @@ class _GoBoardState extends State<GoBoard> {
     return hoshi;
   }
 
-
-
   Widget _buildStone(Stone stone, double size) {
     if (stone == Stone.black) {
       return Container(
@@ -376,9 +516,3 @@ class _GoBoardState extends State<GoBoard> {
     return const SizedBox.shrink();
   }
 }
-
-// void main() {
-//   runApp(const MaterialApp(
-//     home: GoBoard(size: 19),
-//   ));
-// }
