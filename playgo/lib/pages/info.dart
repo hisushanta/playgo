@@ -99,7 +99,6 @@ class ItemInfo{
         userProfile[uuid!] = {
           'username': userProfileData['username'],
           'profileImage': userProfileData['profileImage'],
-          'address': userProfileData['address'],
           'email': userProfileData['email'],
           'number': userProfileData['number'],
           'fund': userProfileData['fund'],
@@ -147,10 +146,8 @@ class ItemInfo{
     } else if( checkToGet == 'number'){
       return userProfile[uuid]!['number'];
     } 
-    else if (checkToGet == "email"){
+    else {
       return userProfile[uuid]!['email'];
-    } else{
-      return userProfile[uuid]!['address'];
     }
   }
   
@@ -171,7 +168,7 @@ class ItemInfo{
 
  bool checkHaveNumberOrAddress(){
   
-  if (userProfile[uuid]!['address'].isNotEmpty && userProfile[uuid]!["number"].isNotEmpty){
+  if (userProfile[uuid]!["number"].isNotEmpty){
     return true;
   } 
   return false;
@@ -194,7 +191,6 @@ class ItemInfo{
             userProfile[uuid!] = {
               'username': snapshot['username'],
               'profileImage': snapshot['profileImage'],
-              'address': snapshot['address'],
               'email': snapshot['email'],
               'number': snapshot['number'],
               'fund': snapshot['fund'],
@@ -251,13 +247,12 @@ class ItemInfo{
         return false;
       }
   }
-  Future<void> updateUserProfile(String username, String profileImage, String address,String email, String number,String fund,[String deposit = '0.0',String winning = '0.0',String gameStatus = "DeActive",String currentEntryPrice="0.0"]) async {
+  Future<void> updateUserProfile(String username, String profileImage,String email, String number,String fund,[String deposit = '0.0',String winning = '0.0',String gameStatus = "DeActive",String currentEntryPrice="0.0"]) async {
     if (uuid != null) {
       var userRef = _firestore.collection('users').doc(uuid);
       await userRef.set({
         'username': username,
         'profileImage': profileImage,
-        'address': address,
         'email': email,
         'number': number,
         'fund':fund,
@@ -270,7 +265,6 @@ class ItemInfo{
       userProfile[uuid!] = {
         'username': username,
         'profileImage': profileImage,
-        'address': address,
         'email': email,
         'number':number,
         'fund': fund,
