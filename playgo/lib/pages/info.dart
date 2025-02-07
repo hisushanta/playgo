@@ -159,6 +159,16 @@ class ItemInfo{
     return userData["username"]!;
   }
   
+  Future<void> addFund(String amount)async{
+    String fund = (double.parse(userProfile[userId]!['fund']) + double.parse(amount)).toString();
+    String deposit = (double.parse(userProfile[userId]!['deposit']) + double.parse(amount)).toString();
+    var userRef = _firestore.collection('users').doc(uuid);
+      await userRef.set({
+        'fund':fund,
+        'deposit':deposit
+      },SetOptions(merge: true));
+  }
+
  bool checkHaveNumberOrAddress(){
   
   if (userProfile[uuid]!['address'].isNotEmpty && userProfile[uuid]!["number"].isNotEmpty){
@@ -353,6 +363,41 @@ Future<Map<String, dynamic>> createMatch(String userId, String partnerId, String
     }
   });
 }
+
+Future<void> updateUserWinning(String userId, double amount) async {
+    try {
+      final userDoc = FirebaseFirestore.instance.collection('users').doc(userId);
+      
+      // Use a transaction to ensure atomic updates
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
+        final userSnapshot = await transaction.get(userDoc);
+        
+        if (!userSnapshot.exists) {
+          throw Exception('User not found');
+        }
+
+        // Get current fund amount
+        double currentFund = double.parse(userSnapshot.data()?['winning']);
+        
+        // Calculate new fund amount
+        double winning;
+        winning = currentFund + amount;
+        
+
+        // Update the fund
+        transaction.update(userDoc, {
+          'winning': winning.toString(),
+        });
+        
+      });
+
+
+    } catch (e) {
+      rethrow; // Rethrow to handle in the calling function
+    }
+  }
+
+
  // Update the updateGameStatus function to include entry price:
 Future updateGameStatus(String status, String uuid, String entryPrice) async {
   var userRef = _firestore.collection('users').doc(uuid);

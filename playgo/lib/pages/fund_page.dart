@@ -109,7 +109,7 @@ class _AddCashPageState extends State<AddCashPage> {
                   onPressed: _isAmountEntered
                       ? () {
                           // Add functionality to handle adding money
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => PaymentOptionsPage()));
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => PaymentOptionsPage(amount: _amountController.text)));
                         }
                       : null,
                   style: ElevatedButton.styleFrom(

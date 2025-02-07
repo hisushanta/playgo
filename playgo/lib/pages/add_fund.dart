@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:path/path.dart';
+import 'package:playgo/main.dart';
 
-class PaymentOptionsPage extends StatelessWidget {
+class PaymentOptionsPage extends StatefulWidget {
+  final String amount;
+  PaymentOptionsPage({Key? key, required this.amount}):super(key:key);
+  @override
+  _PaymentOptionsPage createState() => _PaymentOptionsPage();
+}
+class _PaymentOptionsPage extends State<PaymentOptionsPage>{
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -22,7 +30,7 @@ class PaymentOptionsPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               SizedBox(height: 20),
-              _buildUPISection(),
+              _buildUPISection(context),
               SizedBox(height: 20),
               _buildCreditDebitCardSection(),
               SizedBox(height: 20),
@@ -35,8 +43,9 @@ class PaymentOptionsPage extends StatelessWidget {
   }
 
   
-  Widget _buildUPISection() {
-    return Container(
+  Widget _buildUPISection(BuildContext context) {
+    return GestureDetector(
+      child:Container(
       padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -49,7 +58,7 @@ class PaymentOptionsPage extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
+      child:Row(
         children: [
           CircleAvatar(
             backgroundColor: Colors.white,
@@ -69,6 +78,12 @@ class PaymentOptionsPage extends StatelessWidget {
           Icon(Icons.chevron_right, color: Colors.black54),
         ],
       ),
+      
+    ),
+    onTap: (){
+      info!.addFund(widget.amount);
+      Navigator.pop(context);
+    },
     );
   }
   Widget _buildCreditDebitCardSection() {
