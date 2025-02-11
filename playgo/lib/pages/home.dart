@@ -298,7 +298,7 @@ class _GoGameHomePageState extends State<GoGameHomePage>{
                       ),
                     ),
                     onTap: (){
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const GoBoard(size: 19))).then((_) => _loadData());
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const GoBoard(size: 13))).then((_) => _loadData());
                     },
                     ),
                   ),
