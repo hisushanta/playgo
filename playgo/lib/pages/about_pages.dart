@@ -402,7 +402,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
           fontSize: 16,
         ),
       ),
-      subtitle: Text(
+      subtitle: SelectableText(
         content,
         style: TextStyle(
           color: content.contains('not provided') ? Colors.red : Colors.black87,
