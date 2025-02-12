@@ -62,14 +62,14 @@ class _MyHomePageState extends State<MyHomePage> {
             label: 'Home',
           ),
           NavigationDestination(
+            selectedIcon: Icon(Icons.person_search_sharp),
+            icon: Icon(Icons.person_search_outlined),
+            label: 'Matchmaking',
+          ),
+          NavigationDestination(
             selectedIcon: Icon(Icons.shopping_basket_sharp),
             icon: Icon(Icons.shopping_basket_outlined),
             label: 'Learn',
-          ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.history_edu_sharp),
-            icon: Icon(Icons.history_edu_outlined),
-            label: 'History',
           ),
           NavigationDestination(
             selectedIcon: Icon(Icons.account_box),
@@ -350,7 +350,7 @@ class _GoGameHomePageState extends State<GoGameHomePage>{
                       ),
                     ),
                     onTap: (){
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const GoAIBoard(size: 19))).then((_) => _loadData());;
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const GoAIBoard(size: 13))).then((_) => _loadData());;
                     },
                     ),
                   ),

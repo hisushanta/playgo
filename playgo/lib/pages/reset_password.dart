@@ -20,7 +20,7 @@ class PasswordResetGuideWidget extends StatelessWidget {
             ),
             const SizedBox(width: 4),
             const Text(
-              "Om Namo",
+              "Play Go",
               style: TextStyle(
                 fontStyle: FontStyle.italic,
                 fontWeight: FontWeight.bold,
@@ -53,8 +53,8 @@ class PasswordResetGuideWidget extends StatelessWidget {
             ),
             const SizedBox(height: 30),
             _buildStep(
-              '1. Open the Lottlo App',
-              'Launch the Lottlo app on your smartphone.',
+              '1. Open the PlayGo App',
+              'Launch the PlayGo app on your smartphone.',
               Icons.phone_android_rounded,
             ),
             _buildStep(
@@ -69,7 +69,7 @@ class PasswordResetGuideWidget extends StatelessWidget {
             ),
             _buildStep(
               '4. Check Your Email',
-              'Look for an email from Lottlo with a password reset link.',
+              'Look for an email from PlayGo with a password reset link.',
               Icons.mail_outline_rounded,
             ),
             _buildStep(
@@ -84,7 +84,7 @@ class PasswordResetGuideWidget extends StatelessWidget {
             ),
             _buildStep(
               '7. Login with New Password',
-              'Return to the Lottlo app and log in using your new password.',
+              'Return to the PlayGo app and log in using your new password.',
               Icons.login_rounded,
             ),
             const SizedBox(height: 30),

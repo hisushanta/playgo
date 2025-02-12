@@ -20,7 +20,7 @@ class FAQPage extends StatelessWidget {
             ),
             const SizedBox(width: 4),
             const Text(
-              "Om Namo",
+              "Play Go",
               style: TextStyle(
                 fontStyle: FontStyle.italic,
                 fontWeight: FontWeight.bold,
@@ -54,18 +54,18 @@ class FAQPage extends StatelessWidget {
             _buildFAQItem(
               question: 'What is the Lottlo app?',
               answer:
-                  "The Lottlo app is your go-to fashion destination, offering a curated collection of trendy clothing and accessories. Designed to make shopping a delightful experience, Lottlo brings you the latest styles from top brands, all in one place. Whether you're looking for everyday essentials or statement pieces, our app provides seamless browsing, easy ordering, and personalized recommendations tailored to your unique style. With Lottlo, you're just a few taps away from revamping your wardrobe!",
+                  "PlayGo is a one-stop gaming platform where you can challenge friends or AI in exciting matches. Test your skills, compete, and even play with real money—where your earnings and losses depend entirely on your expertise!",
             ),
             
             _buildFAQItem(
               question: 'How can I contact customer support?',
               answer:
-                  'You can reach customer support by calling +917596912157 or emailing us at lottloapp@gmail.com. We’re here to help!',
+                  'You can reach customer support by calling +917596912157 or emailing us at playgoapp@gmail.com. We’re here to help!',
             ),
             _buildFAQItem(
               question: 'How do I update my profile?',
               answer:
-                  "To update your profile information, such as your name, address, and phone number, go to the User Profile section in the app. Simply click on the Edit Profile text, and you'll be able to make changes to your name, profile picture, address, and phone number.",
+                  "To update your profile information, such as your name, address, and phone number, go to the User Profile section in the app. Simply click on the Edit Profile text, and you'll be able to make changes to your name, profile picture, and phone number.",
             ),
             _buildFAQItem(
               question: 'What should I do if I forget my password?',
@@ -74,8 +74,8 @@ class FAQPage extends StatelessWidget {
             ),
             const SizedBox(height: 30),
             Center(
-              child: Text(
-                'Still have questions? Contact us at lottloapp@gmail.com.',
+              child: SelectableText(
+                'Still have questions? Contact us at playgoapp@gmail.com.',
                 style: TextStyle(
                   fontSize: 16,
                   fontStyle: FontStyle.italic,
@@ -108,7 +108,7 @@ class FAQPage extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Text(
+            child: SelectableText(
               answer,
               style: const TextStyle(fontSize: 16, color: Colors.black87),
             ),

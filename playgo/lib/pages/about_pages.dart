@@ -4,6 +4,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 import 'package:playgo/main.dart';
 import 'package:playgo/pages/fund_page.dart';
+import 'package:playgo/pages/home.dart';
 import 'package:playgo/pages/wallet_pages.dart';
 import 'contact.dart';
 import 'reset_password.dart';
@@ -20,7 +21,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
   String? _profileImagePath;
   bool _isEditing = false;
   late TextEditingController _usernameController;
-  late TextEditingController _addressController;
   late TextEditingController _phoneController;
   late TextEditingController _emailController;
 
@@ -30,7 +30,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
   void initState() {
     super.initState();
     _usernameController = TextEditingController();
-    _addressController = TextEditingController();
     _phoneController = TextEditingController();
     _emailController = TextEditingController();
 
@@ -40,7 +39,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
   @override
   void dispose() {
     _usernameController.dispose();
-    _addressController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
 
@@ -56,7 +54,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
           _profileImagePath = "assets/homeIcon.png";
         }
         _usernameController.text = info!.userProfile[info!.uuid]!['username'] ?? '';
-        _addressController.text = info!.userProfile[info!.uuid]!['address'] ?? '';
         _phoneController.text = info!.userProfile[info!.uuid]!['number'] ?? '';
         _emailController.text = info!.userProfile[info!.uuid]!['email'] ?? '';
         _fundBalance = info!.userProfile[info!.uuid]!['fund'] ?? '0';
@@ -72,7 +69,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
               _profileImagePath = "assets/homeIcon.png";
             }
             _usernameController.text = info!.userProfile[info!.uuid]!['username'] ?? '';
-            _addressController.text = info!.userProfile[info!.uuid]!['address'] ?? '';
             _phoneController.text = info!.userProfile[info!.uuid]!['number'] ?? '';
             _emailController.text = info!.userProfile[info!.uuid]!['email'] ?? '';
 
@@ -98,7 +94,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
             info!.updateUserProfile(
               _usernameController.text,
               _profileImagePath!,
-              _addressController.text,
               _emailController.text,
               _phoneController.text,
               info!.userProfile[info!.uuid]!['fund'],
@@ -175,7 +170,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
       info!.updateUserProfile(
         _usernameController.text,
         _profileImagePath!,
-        _addressController.text,
         _emailController.text,
         _phoneController.text,
         info!.userProfile[info!.uuid]!['fund']
@@ -329,20 +323,12 @@ class _UserProfilePageState extends State<UserProfilePage> {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    _isEditing
-                        ? TextField(
-                            controller: _addressController,
-                            decoration: const InputDecoration(
-                              labelText: 'Address',
-                            ),
-                          )
-                        : _buildCustomDisplayTile(
-                            title: 'Address',
-                            content: _addressController.text.isEmpty
-                                ? 'Address not provided'
-                                : _addressController.text,
-                            icon: Icons.home,
+                    _buildCustomDisplayTile(
+                            title: 'USER ID',
+                            content: userId,
+                            icon: Icons.perm_identity_outlined,
                           ),
+                    
                     
                     const SizedBox(height: 10),
                     _isEditing
@@ -416,7 +402,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
           fontSize: 16,
         ),
       ),
-      subtitle: Text(
+      subtitle: SelectableText(
         content,
         style: TextStyle(
           color: content.contains('not provided') ? Colors.red : Colors.black87,
