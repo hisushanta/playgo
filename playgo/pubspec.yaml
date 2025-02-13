@@ -32,8 +32,10 @@ dependencies:
   url_launcher: ^6.3.1
   cupertino_icons: ^1.0.6
   firebase_database: ^11.2.0
-
-
+  package_info_plus: ^4.0.0  # Add this
+  pay: ^3.1.0
+  shimmer: ^3.0.0
+  
 dev_dependencies:
   flutter_test:
     sdk: flutter

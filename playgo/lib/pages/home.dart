@@ -9,6 +9,8 @@ import 'fund_page.dart';
 import 'tournament_page.dart';
 import 'aiPlay.dart';
 import 'wallet_pages.dart';
+import 'search_user.dart';
+import 'match_request.dart';
 
 final userId = FirebaseAuth.instance.currentUser!.uid;
 
@@ -34,8 +36,8 @@ class _MyHomePageState extends State<MyHomePage> {
   int _selectedIndex = 0; // Track the selected index for the navigation bar
   final List<Widget> _pages = [
     GoGameHomePage(),
-    GoGameHomePage(),
-    GoGameHomePage(),
+    SearchPage(),
+    MatchRequestPage(),
     const UserProfilePage() 
   ];
   
@@ -69,7 +71,7 @@ class _MyHomePageState extends State<MyHomePage> {
           NavigationDestination(
             selectedIcon: Icon(Icons.shopping_basket_sharp),
             icon: Icon(Icons.shopping_basket_outlined),
-            label: 'Learn',
+            label: 'Request',
           ),
           NavigationDestination(
             selectedIcon: Icon(Icons.account_box),
