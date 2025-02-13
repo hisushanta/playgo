@@ -529,4 +529,71 @@ Future<void> removeLoveFromFirestore(String loveId) async{
                             outForOrderDate,DeliveredDate,quantity,totalPrice,deliveryAddress,email,time]}, aindex.toString());
   }
 
+   // Search for user by ID
+  Future<Map<String, dynamic>?> searchUserById(String searchId) async {
+    try {
+      final userDoc = await _firestore.collection('users').doc(searchId).get();
+      if (userDoc.exists) {
+        return {
+          'id': userDoc.id,
+          'username': userDoc.data()?['username'],
+          'status': userDoc.data()?['status']
+        };
+      }
+      return null;
+    } catch (e) {
+      print('Error searching user: $e');
+      return null;
+    }
+  }
+
+  // Send match request
+  Future<bool> sendMatchRequest(String senderId, String receiverId) async {
+    try {
+      await _firestore.collection('matchRequests').add({
+        'senderId': senderId,
+        'receiverId': receiverId,
+        'receiverConfirmed':false,
+        "senderConfirmed":false,
+        'showConfirmation':false,
+        'status': 'pending',
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+      return true;
+    } catch (e) {
+      print('Error sending match request: $e');
+      return false;
+    }
+  }
+
+  // Get match requests for a user
+  Stream<QuerySnapshot> getMatchRequests(String userId) {
+    return _firestore
+        .collection('matchRequests')
+        .where('receiverId', isEqualTo: userId)
+        .where('status', isEqualTo: 'pending')
+        .snapshots();
+  }
+
+  // Accept match request
+  Future<void> acceptMatchRequest(String requestId, String senderId, String receiverId) async {
+    try {
+      // Update request status
+      await _firestore.collection('matchRequests').doc(requestId).update({
+        'status': 'accepted',
+      });
+
+      // Create match session
+      await _firestore.collection('matches').add({
+        'players': [senderId, receiverId],
+        'status': 'starting',
+        'timestamp': FieldValue.serverTimestamp(),
+        'countdownStarted': false,
+      });
+    } catch (e) {
+      print('Error accepting match request: $e');
+      rethrow;
+    }
+  }
+
 }
