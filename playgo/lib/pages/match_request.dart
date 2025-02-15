@@ -72,9 +72,11 @@ class _MatchRequestPageState extends State<MatchRequestPage> {
       final showConfirmation = snapshot['showConfirmation'] ?? false;
       final senderConfirmed = snapshot['senderConfirmed'] ?? false;
       final receiverConfirmed = snapshot['receiverConfirmed'] ?? false;
-
+      final duration = int.parse(snapshot['duration']);
+      final entryPrice = snapshot['entryPrice']??'0.0';
+      final prizePool = double.parse(entryPrice) > 0.0?(((double.parse(snapshot['entryPrice']) * 2)/100)*2).toString():"0.0";
       debugPrint(
-          'showConfirmation: $showConfirmation, senderConfirmed: $senderConfirmed, receiverConfirmed: $receiverConfirmed');
+          'showConfirmation: $showConfirmation, senderConfirmed: $senderConfirmed, receiverConfirmed: $receiverConfirmed, duration: $duration, entryPrice: $entryPrice, prizePool: $prizePool');
       // Check if both users have confirmed
       if (senderConfirmed && receiverConfirmed) {
             debugPrint("Both users confirmed. Showing countdown dialog.");
@@ -85,9 +87,9 @@ class _MatchRequestPageState extends State<MatchRequestPage> {
                 context: context,
                 isScrollControlled: true,
                 builder: (context) => CountdownBottomDialog(
-                  time: 3,
-                  entryPrice: '0',
-                  prizePool: '0',
+                  time: duration,
+                  entryPrice: entryPrice,
+                  prizePool: prizePool,
                   partnerId: userId == snapshot["senderId"]
                       ? snapshot['receiverId']
                       : snapshot['senderId'],

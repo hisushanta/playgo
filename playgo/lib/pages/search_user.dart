@@ -65,10 +65,10 @@ class _SearchPageState extends State<SearchPage> {
     }
   }
 
-  Future<void> _sendMatchRequest() async {
+  Future<void> _sendMatchRequest(String entryPrice,String duration) async {
     if (_foundUser == null) return;
 
-    final success = await info!.sendMatchRequest(userId, _foundUser!['id']);
+    final success = await info!.sendMatchRequest(userId, _foundUser!['id'],duration,entryPrice);
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Match request sent!')),
@@ -97,38 +97,42 @@ class _SearchPageState extends State<SearchPage> {
         ),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // Search Bar
-            Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(30),
-                color: Colors.grey[200],
-              ),
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Enter User ID',
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                  suffixIcon: IconButton(
-                    icon: Icon(Icons.search, color: Colors.blue),
-                    onPressed: _searchUser,
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom, // Adjust for keyboard
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              // Search Bar
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(30),
+                  color: Colors.grey[200],
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Enter User ID',
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                    suffixIcon: IconButton(
+                      icon: Icon(Icons.search, color: Colors.blue),
+                      onPressed: _searchUser,
+                    ),
                   ),
                 ),
               ),
-            ),
-            SizedBox(height: 20),
-
-            // Loading or Results
-            if (_isSearching)
-              _buildShimmerLoading()
-            else if (_foundUser != null)
-              _buildUserProfileCard()
-            else
-              _buildEmptyState(),
-          ],
+              SizedBox(height: 20),
+              // Loading or Results
+              if (_isSearching)
+                _buildShimmerLoading()
+              else if (_foundUser != null)
+                Expanded(child: _buildUserProfileCard()) // Use Expanded to avoid overflow
+              else
+                _buildEmptyState(),
+            ],
+          ),
         ),
       ),
     );
@@ -169,6 +173,10 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   Widget _buildUserProfileCard() {
+    // Set default values if not provided
+    final totalGameTime = _foundUser!['totalGameTime'] ?? '12';
+    final entryPrice = _foundUser!['entryPrice']?.toStringAsFixed(2) ?? '0.00';
+
     return Card(
       elevation: 5,
       shape: RoundedRectangleBorder(
@@ -183,9 +191,10 @@ class _SearchPageState extends State<SearchPage> {
           ),
           borderRadius: BorderRadius.circular(15),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(16.0),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               CircleAvatar(
                 radius: 40,
@@ -203,8 +212,34 @@ class _SearchPageState extends State<SearchPage> {
                 style: TextStyle(fontSize: 14, color: Colors.white70),
               ),
               SizedBox(height: 20),
+              // Editable Total Game Time
+              _buildEditableFieldForMinutes(
+                label: 'Total Game Time',
+                value: totalGameTime,
+                onChanged: (value) {
+                  setState(() {
+                    _foundUser!['totalGameTime'] = value;
+                  });
+                },
+                icon: Icons.timer,
+              ),
+              SizedBox(height: 20),
+              // Editable Entry Price
+              _buildEditableField(
+                label: 'Entry Price',
+                value: entryPrice,
+                onChanged: (value) {
+                  setState(() {
+                    _foundUser!['entryPrice'] = double.tryParse(value) ?? 0.0;
+                  });
+                },
+                icon: Icons.attach_money,
+              ),
+              SizedBox(height: 20),
               ElevatedButton(
-                onPressed: _sendMatchRequest,
+                onPressed:(){ 
+                  _sendMatchRequest(entryPrice.toString(),totalGameTime.toString());
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
                   foregroundColor: Colors.blue,
@@ -219,6 +254,87 @@ class _SearchPageState extends State<SearchPage> {
           ),
         ),
       ),
+    );
+  }
+
+  // Helper method to create an editable field with an icon
+  Widget _buildEditableField({
+    required String label,
+    required String value,
+    required Function(String) onChanged,
+    required IconData icon,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 20, color: Colors.white70),
+            SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(fontSize: 14, color: Colors.white70),
+            ),
+          ],
+        ),
+        SizedBox(height: 5),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: TextFormField(
+            initialValue: value,
+            style: TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+            ),
+            onChanged: onChanged,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Helper method to create an editable field with an icon
+  Widget _buildEditableFieldForMinutes({
+    required String label,
+    required String value,
+    required Function(String) onChanged,
+    required IconData icon,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 20, color: Colors.white70),
+            SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(fontSize: 14, color: Colors.white70),
+            ),
+          ],
+        ),
+        SizedBox(height: 5),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: TextFormField(
+            initialValue: value,
+            keyboardType: TextInputType.number,
+            style: TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+            ),
+            onChanged: onChanged,
+          ),
+        ),
+      ],
     );
   }
 
