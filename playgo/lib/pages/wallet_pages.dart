@@ -50,9 +50,9 @@ class _WalletPage extends State<WalletPage> {
           children: [
             _buildBalanceCard(),
             SizedBox(height: 16),
-            _buildSection('Deposits', '₹$deposit', 'Add Cash', Colors.green, Icons.add,context),
+            _buildSection('Deposits', '₹${double.parse(deposit).toStringAsFixed(2)}', 'Add Cash', Colors.green, Icons.add,context),
             SizedBox(height: 16),
-            _buildSection('Winnings', '₹$winning', 'Withdraw', Colors.orange, Icons.arrow_downward,context),
+            _buildSection('Winnings', '₹${double.parse(winning).toStringAsFixed(2)}', 'Withdraw', Colors.orange, Icons.arrow_downward,context),
             SizedBox(height: 16),
             _buildInfoSection('Cashback Reward', '₹1.32', 'CASHBACK DETAILS'),
             SizedBox(height: 16),
@@ -95,7 +95,7 @@ class _WalletPage extends State<WalletPage> {
           ),
           SizedBox(height: 8),
           Text(
-            fundBalance,
+            double.parse(fundBalance).toStringAsFixed(2),
             style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.black),
           ),
         ],

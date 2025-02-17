@@ -308,7 +308,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                               ),
                             ),
                             Text(
-                              "₹$_fundBalance",
+                              "₹${double.parse(_fundBalance).toStringAsFixed(2)}",
                               style: const TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
