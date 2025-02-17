@@ -5,6 +5,7 @@ import 'package:playgo/pages/match_play.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:playgo/main.dart'; // Import your ItemInfo class
 import 'home.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class MatchRequestPage extends StatefulWidget {
   @override
@@ -164,6 +165,7 @@ class _MatchRequestPageState extends State<MatchRequestPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text('Match Requests', style: TextStyle(color: Colors.white)),
         centerTitle: true,
@@ -208,6 +210,8 @@ class _MatchRequestPageState extends State<MatchRequestPage> {
                     final senderId = request['senderId'];
                     final receiverId = request['receiverId'];
                     final status = request['status'];
+                    final entryPrice = request['entryPrice'].toString();
+                    final gameDuration = request['duration'].toString();
 
                     // Determine if the current user is the sender or receiver
                     final isSentRequest = senderId == userId;
@@ -237,6 +241,8 @@ class _MatchRequestPageState extends State<MatchRequestPage> {
                           isSentRequest,
                           requestId,
                           senderId,
+                          entryPrice,
+                          gameDuration
                         );
                       },
                     );
@@ -297,72 +303,171 @@ class _MatchRequestPageState extends State<MatchRequestPage> {
     );
   }
 
-  Widget _buildMatchRequestCard(
-    String username,
-    bool isSentRequest,
-    String requestId,
-    String senderId,
-  ) {
-    return Card(
-      margin: EdgeInsets.all(10),
-      elevation: 5,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 30,
-              backgroundColor: Colors.blue,
-              child: Icon(Icons.person, size: 30, color: Colors.white),
-            ),
-            SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    username,
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 5),
-                  Text(
-                    isSentRequest ? 'Sent Request' : 'Received Request',
-                    style: TextStyle(fontSize: 14, color: Colors.grey),
-                  ),
-                ],
+Widget _buildMatchRequestCard(
+  String username,
+  bool isSentRequest,
+  String requestId,
+  String senderId,
+  String entryPrice,
+  String gameDuration,
+) {
+  return Card(
+    margin: EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+    elevation: 6,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(20),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          /// Profile Avatar and Username
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 35,
+                backgroundColor: Colors.blue.shade700,
+                child: Icon(Icons.person, size: 35, color: Colors.white),
               ),
-            ),
-            isSentRequest
-                ? ElevatedButton(
-                    onPressed: () => _cancelMatchRequest(requestId),
-                    child: Text('Cancel'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
+              SizedBox(width: 10),
+              /// Username
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      username,
+                      style: GoogleFonts.poppins(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    SizedBox(height: 4), // Small spacing between username and role
+                    Text(
+                      isSentRequest ? "You sent this request" : "You received this request",
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey.shade600,
                       ),
                     ),
-                  )
-                : ElevatedButton(
-                    onPressed: () => _acceptMatchRequest(requestId, senderId),
-                    child: Text('Accept'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          SizedBox(height: 15), // Spacing between Username and Details
+
+          /// Entry Price
+          Row(
+            children: [
+              Icon(Icons.currency_rupee, color: Colors.green, size: 20),
+              SizedBox(width: 5),
+              Text(
+                "Entry Price:",
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black54,
+                ),
+              ),
+              SizedBox(width: 5),
+              Text(
+                "$entryPrice",
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.green,
+                ),
+              ),
+            ],
+          ),
+
+          SizedBox(height: 10), // Spacing between Entry Price and Game Duration
+
+          /// Game Duration
+          Row(
+            children: [
+              Icon(Icons.timer, color: Colors.blue, size: 20),
+              SizedBox(width: 5),
+              Text(
+                "Game Duration:",
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black54,
+                ),
+              ),
+              SizedBox(width: 5),
+              Text(
+                "$gameDuration mins",
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.blueAccent,
+                ),
+              ),
+            ],
+          ),
+
+          SizedBox(height: 20), // Spacing between Details and Buttons
+
+          /// Action Buttons (Accept/Cancel) - Centered
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center, // Center the buttons
+            children: [
+              if (!isSentRequest)
+                ElevatedButton(
+                  onPressed: () => _acceptMatchRequest(requestId, senderId),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  ),
+                  child: Text(
+                    "Accept",
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white,
                     ),
                   ),
-          ],
-        ),
+                ),
+              SizedBox(width: 10), // Spacing between buttons
+              ElevatedButton(
+                onPressed: () => _cancelMatchRequest(requestId),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                ),
+                child: Text(
+                  "Cancel",
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
+
+
 }
 
 
