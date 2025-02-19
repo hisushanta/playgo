@@ -255,212 +255,216 @@ class GameTournamentPage extends State<TournamentPage> {
     );
   }
 
-  Widget buildTournamentTile(String entryPrice, String prizePools, String category,String time) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Card(
-        color: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        elevation: 4,
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Column(
-            children: [
-              Card(
-                color: const Color.fromARGB(255, 199, 237, 236),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+ Widget buildTournamentTile(String entryPrice, String prizePools, String category, String time) {
+  return Padding(
+    padding: const EdgeInsets.all(8.0),
+    child: Card(
+      color: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Column(
+          children: [
+            Card(
+              color: const Color.fromARGB(255, 199, 237, 236),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    category,
+                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+                  ),
+                  SizedBox(width: 8),
+                  Icon(Icons.timer, size: 16, color: Colors.amber),
+                  SizedBox(width: 8),
+                  Text(
+                    '$time min', // Display the duration here
+                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+                  ),
+                ],
+              ),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      category,
-                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+                    Text('Prize Pool', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                    Row(
+                      children: [
+                        Text(
+                          prizePools,
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        Icon(Icons.arrow_drop_down, color: Colors.black),
+                      ],
                     ),
-                    SizedBox(width: 8),
-                    Icon(Icons.timer, size: 16, color: Colors.amber),
                   ],
                 ),
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Prize Pool', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                      Row(
-                        children: [
-                          Text(
-                            prizePools,
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                Column(
+                  children: [
+                    Text('ENTRY',
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                            fontStyle: FontStyle.italic)),
+                    ElevatedButton(
+                      onPressed: () {
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
                           ),
-                          Icon(Icons.arrow_drop_down, color: Colors.black),
-                        ],
-                      ),
-                    ],
-                  ),
-                  Column(
-                    children: [
-                      Text('ENTRY',
-                          style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
-                              fontStyle: FontStyle.italic)),
-                      ElevatedButton(
-                        onPressed: () {
-                          showModalBottomSheet(
-                            context: context,
-                            isScrollControlled: true,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-                            ),
-                            builder: (context) {
-                              return Padding(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                  // Handle for aesthetic purposes
-                                  Container(
-                                    width: 50,
-                                    height: 5,
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey[300],
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                  ),
-                                  SizedBox(height: 20),
-                                  // Currency Icon
-                                  CircleAvatar(
-                                    radius: 30,
-                                    backgroundColor: Colors.purple.withOpacity(0.1),
-                                    child: Icon(
-                                      Icons.currency_rupee,
-                                      color: Colors.purple,
-                                      size: 32,
-                                    ),
-                                  ),
-                                  SizedBox(height: 15),
-                                  // Title
-                                  Text(
-                                    "Confirm Payment",
-                                    style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-                                  SizedBox(height: 10),
-                                  // Game Info
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(Icons.timer, size: 20, color: Colors.amber),
-                                      SizedBox(width: 5),
-                                      Text(
-                                        "$time min Go",
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w500,
-                                          color: Colors.black54,
-                                        ),
+                          builder: (context) {
+                            return Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    // Handle for aesthetic purposes
+                                    Container(
+                                      width: 50,
+                                      height: 5,
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[300],
+                                        borderRadius: BorderRadius.circular(10),
                                       ),
-                                    ],
-                                  ),
-                                  SizedBox(height: 20),
-                                  // Entry Fee
-                                  Container(
-                                    padding: EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey[200],
-                                      borderRadius: BorderRadius.circular(15),
                                     ),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    SizedBox(height: 20),
+                                    // Currency Icon
+                                    CircleAvatar(
+                                      radius: 30,
+                                      backgroundColor: Colors.purple.withOpacity(0.1),
+                                      child: Icon(
+                                        Icons.currency_rupee,
+                                        color: Colors.purple,
+                                        size: 32,
+                                      ),
+                                    ),
+                                    SizedBox(height: 15),
+                                    // Title
+                                    Text(
+                                      "Confirm Payment",
+                                      style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                    SizedBox(height: 10),
+                                    // Game Info
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
+                                        Icon(Icons.timer, size: 20, color: Colors.amber),
+                                        SizedBox(width: 5),
                                         Text(
-                                          "Entry Fee",
+                                          "$time min Go",
                                           style: TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.w500,
                                             color: Colors.black54,
                                           ),
                                         ),
-                                        Text(
-                                          "₹$entryPrice",
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.black87,
-                                          ),
-                                        ),
                                       ],
                                     ),
-                                  ),
-                                  SizedBox(height: 30),
-                                  // Join Now Button
+                                    SizedBox(height: 20),
+                                    // Entry Fee
+                                    Container(
+                                      padding: EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[200],
+                                        borderRadius: BorderRadius.circular(15),
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            "Entry Fee",
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w500,
+                                              color: Colors.black54,
+                                            ),
+                                          ),
+                                          Text(
+                                            "₹$entryPrice",
+                                            style: TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.black87,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    SizedBox(height: 30),
+                                    // Join Now Button
                                     ElevatedButton(
-                              onPressed: () {
-                                if(double.parse(fundBalance) >= double.parse(entryPrice)) {
-                                  Navigator.pop(context);
-                                  info!.updateGameStatus("Active", userId, entryPrice);
-                                  showModalBottomSheet(
-                                    context: context,
-                                    isDismissible: false,
-                                    enableDrag: false,
-                                    isScrollControlled: true,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-                                    ),
-                                    builder: (context) {
-                                      return PopScope(
-                                        canPop: false,
-                                        child: CountdownBottomDialog(
-                                          time: int.parse(time),
-                                          entryPrice: entryPrice,
-                                          prizePool: prizePools,
-                                          updateFund: updateFund,
+                                      onPressed: () {
+                                        if (double.parse(fundBalance) >= double.parse(entryPrice)) {
+                                          Navigator.pop(context);
+                                          info!.updateGameStatus("Active", userId, entryPrice);
+                                          showModalBottomSheet(
+                                            context: context,
+                                            isDismissible: false,
+                                            enableDrag: false,
+                                            isScrollControlled: true,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+                                            ),
+                                            builder: (context) {
+                                              return PopScope(
+                                                canPop: false,
+                                                child: CountdownBottomDialog(
+                                                  time: int.parse(time),
+                                                  entryPrice: entryPrice,
+                                                  prizePool: prizePools,
+                                                  updateFund: updateFund,
+                                                ),
+                                              );
+                                            },
+                                          );
+                                        } else {
+                                          Navigator.pop(context);
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'Insufficient Balance, Please Add Money And Then Play Game💵',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontStyle: FontStyle.italic
+                                                )
+                                              ),
+                                              duration: Duration(seconds: 3),
+                                              backgroundColor: Colors.redAccent,
+                                            ),
+                                          );
+                                        }
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        padding: EdgeInsets.symmetric(vertical: 12, horizontal: 50),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(25),
                                         ),
-                                      );
-                                    },
-                                  );
-                                } else {
-                                  Navigator.pop(context);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        'Insufficient Balance, Please Add Money And Then Play Game💵',
+                                        backgroundColor: Colors.yellow,
+                                        foregroundColor: Colors.black,
+                                      ),
+                                      child: Text(
+                                        "Join Now",
                                         style: TextStyle(
-                                          color: Colors.white,
+                                          fontSize: 18,
                                           fontWeight: FontWeight.bold,
-                                          fontStyle: FontStyle.italic
-                                        )
-                                      ),
-                                      duration: Duration(seconds: 3),
-                                      backgroundColor: Colors.redAccent,
-                                    ),
-                                  );
-                                }
-                              }, 
-                                    style: ElevatedButton.styleFrom(
-                                      padding: EdgeInsets.symmetric(vertical: 12, horizontal: 50),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(25),
-                                      ),
-                                      backgroundColor: Colors.yellow,
-                                      foregroundColor: Colors.black,
-                                    ),
-                                    child: Text(
-                                      "Join Now",
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  SizedBox(height: 20),
-                                ],
-                              ),
-                            
+                                    SizedBox(height: 20),
+                                  ],
+                                ),
                               );
                           },
                         );
@@ -480,17 +484,16 @@ class GameTournamentPage extends State<TournamentPage> {
                         ),
                       ),
                     ),
-
-                    ],
-                  ),
-                ],
-              ),
-            ],
-          ),
+                  ],
+                ),
+              ],
+            ),
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class CountdownBottomDialog extends StatefulWidget {
