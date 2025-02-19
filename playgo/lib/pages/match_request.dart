@@ -47,7 +47,6 @@ class _MatchRequestPageState extends State<MatchRequestPage> {
           .collection('matchRequests')
           .doc(requestId)
           .update({
-        'receiverConfirmed': true,
         'showConfirmation': true, // Notify both users to show the dialog
       });
       // CountdownBottomDialog(time: 3,entryPrice: '0',partnerId: userId==requestId?senderId:requestId,prizePool: '0');
@@ -75,12 +74,10 @@ class _MatchRequestPageState extends State<MatchRequestPage> {
       final receiverConfirmed = snapshot['receiverConfirmed'] ?? false;
       final duration = int.parse(snapshot['duration']);
       final entryPrice = snapshot['entryPrice']??'0.0';
-      final prizePool = double.parse(entryPrice) > 0.0?(((double.parse(snapshot['entryPrice']) * 2)/100)*2).toString():"0.0";
-      debugPrint(
-          'showConfirmation: $showConfirmation, senderConfirmed: $senderConfirmed, receiverConfirmed: $receiverConfirmed, duration: $duration, entryPrice: $entryPrice, prizePool: $prizePool');
+      final boardSize = snapshot['boardSize'];
+      final prizePool = double.parse(entryPrice) > 0.0?((double.parse(snapshot['entryPrice'])*2)-(((double.parse(snapshot['entryPrice']) * 2)/100)*2)).toString():"0.0";
       // Check if both users have confirmed
       if (senderConfirmed && receiverConfirmed) {
-            debugPrint("Both users confirmed. Showing countdown dialog.");
 
             // Navigate to the CountdownBottomDialog
             if (mounted) {
@@ -94,6 +91,7 @@ class _MatchRequestPageState extends State<MatchRequestPage> {
                   partnerId: userId == snapshot["senderId"]
                       ? snapshot['receiverId']
                       : snapshot['senderId'],
+                  boardSize: boardSize,
                 ),
               );
               _cancelMatchRequest(requestId);
@@ -212,6 +210,7 @@ class _MatchRequestPageState extends State<MatchRequestPage> {
                     final status = request['status'];
                     final entryPrice = request['entryPrice'].toString();
                     final gameDuration = request['duration'].toString();
+                    final boardSize = request['boardSize'].toString();
 
                     // Determine if the current user is the sender or receiver
                     final isSentRequest = senderId == userId;
@@ -242,7 +241,8 @@ class _MatchRequestPageState extends State<MatchRequestPage> {
                           requestId,
                           senderId,
                           entryPrice,
-                          gameDuration
+                          gameDuration,
+                          boardSize,
                         );
                       },
                     );
@@ -310,6 +310,7 @@ Widget _buildMatchRequestCard(
   String senderId,
   String entryPrice,
   String gameDuration,
+  String boardSize,
 ) {
   return Card(
     margin: EdgeInsets.symmetric(vertical: 10, horizontal: 15),
@@ -415,6 +416,33 @@ Widget _buildMatchRequestCard(
             ],
           ),
 
+          SizedBox(height: 10), // Spacing between Game Duration and Board Size
+
+          /// Board Size
+          Row(
+            children: [
+              Icon(Icons.grid_on, color: Colors.orange, size: 20),
+              SizedBox(width: 5),
+              Text(
+                "Board Size:",
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black54,
+                ),
+              ),
+              SizedBox(width: 5),
+              Text(
+                "$boardSize",
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.orange,
+                ),
+              ),
+            ],
+          ),
+
           SizedBox(height: 20), // Spacing between Details and Buttons
 
           /// Action Buttons (Accept/Cancel) - Centered
@@ -467,7 +495,6 @@ Widget _buildMatchRequestCard(
   );
 }
 
-
 }
 
 
@@ -476,12 +503,14 @@ class CountdownBottomDialog extends StatefulWidget {
   final String entryPrice;
   final String prizePool;
   final String partnerId;
+  final String boardSize;
   CountdownBottomDialog({
     super.key, 
     required this.time,
     required this.entryPrice,
     required this.prizePool,
     required this.partnerId,
+    required this.boardSize,
   });
   
   @override
@@ -599,7 +628,7 @@ class _CountdownBottomDialogState extends State<CountdownBottomDialog> with Sing
       context,
       MaterialPageRoute(
         builder: (context) => GoBoardMatch(
-          size: 13,
+          size: widget.boardSize=="9x9"?9:13,
           gameId: partner['gameId'],
           playerId: userId,
           totalGameTime: widget.time,

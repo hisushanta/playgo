@@ -548,13 +548,14 @@ Future<void> removeLoveFromFirestore(String loveId) async{
   }
 
   // Send match request
-  Future<bool> sendMatchRequest(String senderId, String receiverId, String duration,String entryPrice) async {
+  Future<bool> sendMatchRequest(String senderId, String receiverId, String duration,String entryPrice,String boardSize) async {
     try {
       await _firestore.collection('matchRequests').add({
         'senderId': senderId,
         'receiverId': receiverId,
         'duration':duration,
         'entryPrice':entryPrice,
+        'boardSize':boardSize,
         'receiverConfirmed':false,
         "senderConfirmed":false,
         'showConfirmation':false,
