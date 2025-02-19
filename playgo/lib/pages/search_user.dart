@@ -15,6 +15,7 @@ class _SearchPageState extends State<SearchPage> {
   Map<String, dynamic>? _foundUser;
   bool _isSearching = false;
   Timer? _debounce;
+  String _selectedBoardSize = '9x9'; // Default board size
 
   @override
   void initState() {
@@ -65,10 +66,17 @@ class _SearchPageState extends State<SearchPage> {
     }
   }
 
-  Future<void> _sendMatchRequest(String entryPrice,String duration) async {
+  Future<void> _sendMatchRequest(String entryPrice, String duration) async {
     if (_foundUser == null) return;
 
-    final success = await info!.sendMatchRequest(userId, _foundUser!['id'],duration,entryPrice);
+    final success = await info!.sendMatchRequest(
+      userId,
+      _foundUser!['id'],
+      duration,
+      entryPrice,
+      _selectedBoardSize, // Pass the selected board size
+    );
+
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Match request sent!')),
@@ -237,9 +245,12 @@ class _SearchPageState extends State<SearchPage> {
                 icon: Icons.attach_money,
               ),
               SizedBox(height: 20),
+              // Board Size Selection
+              _buildBoardSizeSelector(),
+              SizedBox(height: 20),
               ElevatedButton(
-                onPressed:(){ 
-                  _sendMatchRequest(entryPrice.toString(),totalGameTime.toString());
+                onPressed: () {
+                  _sendMatchRequest(entryPrice.toString(), totalGameTime.toString());
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
@@ -336,6 +347,56 @@ class _SearchPageState extends State<SearchPage> {
           ),
         ),
       ],
+    );
+  }
+
+  // Helper method to create a board size selector
+  Widget _buildBoardSizeSelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Select Board Size',
+          style: TextStyle(fontSize: 14, color: Colors.white70),
+        ),
+        SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _buildBoardSizeOption('9x9'),
+            _buildBoardSizeOption('13x13'),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBoardSizeOption(String size) {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedBoardSize = size;
+        });
+      },
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        decoration: BoxDecoration(
+          color: _selectedBoardSize == size ? Colors.white : Colors.white.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: _selectedBoardSize == size ? Colors.blue : Colors.transparent,
+            width: 2,
+          ),
+        ),
+        child: Text(
+          size,
+          style: TextStyle(
+            fontSize: 16,
+            color: _selectedBoardSize == size ? Colors.blue : Colors.white70,
+            fontWeight: _selectedBoardSize == size ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+      ),
     );
   }
 
