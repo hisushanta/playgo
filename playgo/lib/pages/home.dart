@@ -327,7 +327,7 @@ class _GoGameHomePageState extends State<GoGameHomePage>{
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              "Single Player Game",
+                              "You Vs AI",
                               style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
