@@ -68,23 +68,27 @@ class _SearchPageState extends State<SearchPage> {
 
   Future<void> _sendMatchRequest(String entryPrice, String duration) async {
     if (_foundUser == null) return;
-
-    final success = await info!.sendMatchRequest(
-      userId,
-      _foundUser!['id'],
-      duration,
-      entryPrice,
-      _selectedBoardSize, // Pass the selected board size
-    );
-
-    if (success) {
+    if(double.parse(entryPrice) > double.parse(info!.userProfile[userId]!['fund'])){
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Match request sent!')),
+        SnackBar(content: Text('Your fund is low.')),
       );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to send match request.')),
+    } else{
+      final success = await info!.sendMatchRequest(
+        userId,
+        _foundUser!['id'],
+        duration,
+        entryPrice,
+        _selectedBoardSize, // Pass the selected board size
       );
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Match request sent!')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to send match request.')),
+        );
+      }
     }
   }
 
@@ -114,10 +118,19 @@ class _SearchPageState extends State<SearchPage> {
           child: Column(
             children: [
               // Search Bar
-              Container(
+              AnimatedContainer(
+                duration: Duration(milliseconds: 300),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(30),
                   color: Colors.grey[200],
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.5),
+                      spreadRadius: 1,
+                      blurRadius: 5,
+                      offset: Offset(0, 3),
+                    ),
+                  ],
                 ),
                 child: TextField(
                   controller: _searchController,
@@ -378,7 +391,8 @@ class _SearchPageState extends State<SearchPage> {
           _selectedBoardSize = size;
         });
       },
-      child: Container(
+      child: AnimatedContainer(
+        duration: Duration(milliseconds: 300),
         padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         decoration: BoxDecoration(
           color: _selectedBoardSize == size ? Colors.white : Colors.white.withOpacity(0.2),
