@@ -100,7 +100,6 @@ class ItemInfo{
           'username': userProfileData['username'],
           'profileImage': userProfileData['profileImage'],
           'email': userProfileData['email'],
-          'number': userProfileData['number'],
           'fund': userProfileData['fund'],
           'deposit': userProfileData['deposit'],
           'winning': userProfileData['winning'],
@@ -143,9 +142,7 @@ class ItemInfo{
   String getDetails(String checkToGet){
     if (checkToGet == 'username'){
       return userProfile[uuid]!['username'];
-    } else if( checkToGet == 'number'){
-      return userProfile[uuid]!['number'];
-    } 
+    }  
     else {
       return userProfile[uuid]!['email'];
     }
@@ -192,7 +189,6 @@ class ItemInfo{
               'username': snapshot['username'],
               'profileImage': snapshot['profileImage'],
               'email': snapshot['email'],
-              'number': snapshot['number'],
               'fund': snapshot['fund'],
               'deposit': snapshot['deposit'],
               'winning': snapshot['winning'],
@@ -247,14 +243,13 @@ class ItemInfo{
         return false;
       }
   }
-  Future<void> updateUserProfile(String username, String profileImage,String email, String number,String fund,[String deposit = '0.0',String winning = '0.0',String gameStatus = "DeActive",String currentEntryPrice="0.0"]) async {
+  Future<void> updateUserProfile(String username, String profileImage,String email,String fund,[String deposit = '0.0',String winning = '0.0',String gameStatus = "DeActive",String currentEntryPrice="0.0"]) async {
     if (uuid != null) {
       var userRef = _firestore.collection('users').doc(uuid);
       await userRef.set({
         'username': username,
         'profileImage': profileImage,
         'email': email,
-        'number': number,
         'fund':fund,
         'deposit':deposit,
         'winning':winning,
@@ -266,7 +261,6 @@ class ItemInfo{
         'username': username,
         'profileImage': profileImage,
         'email': email,
-        'number':number,
         'fund': fund,
         'deposit': deposit,
         'winning':winning,

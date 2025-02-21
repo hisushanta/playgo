@@ -19,7 +19,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  final TextEditingController phoneController = TextEditingController();
 
   bool isAgreed = false;
   bool checkWhat = false;
@@ -87,8 +86,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                     // Input Fields
                     _buildTextField("Username", usernameController),
-                    const SizedBox(height: 20),
-                    _buildTextField("Phone Number", phoneController, keyboardType: TextInputType.phone),
                     const SizedBox(height: 20),
                     _buildTextField("Email", emailController),
                     const SizedBox(height: 20),
@@ -167,7 +164,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         }
         if (checkWhat) {
           info = ItemInfo(snapshot.data!.uid);
-          info!.updateUserProfile(usernameController.text, 'assets/mainIcon.png', emailController.text, phoneController.text, "0");
+          info!.updateUserProfile(usernameController.text, 'assets/mainIcon.png', emailController.text, "0");
           return Home();
         } else {
           return SignUpScreen();

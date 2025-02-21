@@ -21,7 +21,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
   String? _profileImagePath;
   bool _isEditing = false;
   late TextEditingController _usernameController;
-  late TextEditingController _phoneController;
   late TextEditingController _emailController;
 
   String _fundBalance = '0'; // Fund balance variable
@@ -30,7 +29,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
   void initState() {
     super.initState();
     _usernameController = TextEditingController();
-    _phoneController = TextEditingController();
     _emailController = TextEditingController();
 
     _initializeProfile();
@@ -39,7 +37,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
   @override
   void dispose() {
     _usernameController.dispose();
-    _phoneController.dispose();
     _emailController.dispose();
 
     super.dispose();
@@ -54,7 +51,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
           _profileImagePath = "assets/homeIcon.png";
         }
         _usernameController.text = info!.userProfile[info!.uuid]!['username'] ?? '';
-        _phoneController.text = info!.userProfile[info!.uuid]!['number'] ?? '';
         _emailController.text = info!.userProfile[info!.uuid]!['email'] ?? '';
         _fundBalance = info!.userProfile[info!.uuid]!['fund'] ?? '0';
 
@@ -69,7 +65,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
               _profileImagePath = "assets/homeIcon.png";
             }
             _usernameController.text = info!.userProfile[info!.uuid]!['username'] ?? '';
-            _phoneController.text = info!.userProfile[info!.uuid]!['number'] ?? '';
             _emailController.text = info!.userProfile[info!.uuid]!['email'] ?? '';
 
             setState(() {});
@@ -95,7 +90,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
               _usernameController.text,
               _profileImagePath!,
               _emailController.text,
-              _phoneController.text,
               info!.userProfile[info!.uuid]!['fund'],
             );
             imageCache.clear();
@@ -171,7 +165,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
         _usernameController.text,
         _profileImagePath!,
         _emailController.text,
-        _phoneController.text,
         info!.userProfile[info!.uuid]!['fund']
       );
 
@@ -329,22 +322,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                             icon: Icons.perm_identity_outlined,
                           ),
                     
-                    
-                    const SizedBox(height: 10),
-                    _isEditing
-                        ? TextField(
-                            controller: _phoneController,
-                            decoration: const InputDecoration(
-                              labelText: 'Phone Number',
-                            ),
-                          )
-                        : _buildCustomDisplayTile(
-                            title: 'Phone Number',
-                            content: _phoneController.text.isEmpty
-                                ? 'Number not provided'
-                                : _phoneController.text,
-                            icon: Icons.phone,
-                          ),
+                   
                     const SizedBox(height: 10),
                     _isEditing
                         ? TextField(
