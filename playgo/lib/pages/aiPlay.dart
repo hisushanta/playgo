@@ -361,7 +361,7 @@ class _GoAIBoardState extends State<GoAIBoard> {
       appBar: AppBar(
         backgroundColor: const Color.fromARGB(255, 253, 192, 100),
         title: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
               colors: [Colors.blue, Colors.purple],
@@ -369,14 +369,29 @@ class _GoAIBoardState extends State<GoAIBoard> {
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                spreadRadius: 2,
+                blurRadius: 5,
+                offset: const Offset(0, 3),
+              ),
+            ],
           ),
           child: const Text(
             'Go AI',
             style: TextStyle(
-              fontSize: 24,
+              fontSize: 28,
               fontWeight: FontWeight.bold,
               fontStyle: FontStyle.italic,
               color: Colors.white,
+              shadows: [
+                Shadow(
+                  color: Colors.black,
+                  offset: Offset(2, 2),
+                  blurRadius: 3,
+                ),
+              ],
             ),
           ),
         ),
