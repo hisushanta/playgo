@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:playgo/main.dart';
 import 'package:playgo/pages/fund_page.dart';
 import 'home.dart';
+
 class WalletPage extends StatefulWidget {
   @override
   _WalletPage createState() => _WalletPage();
@@ -11,6 +12,7 @@ class _WalletPage extends State<WalletPage> {
   String fundBalance = "0.0";
   String deposit = "0.0";
   String winning = '0.0';
+
   @override
   void initState() {
     _loadData();
@@ -18,13 +20,13 @@ class _WalletPage extends State<WalletPage> {
   }
 
   void _loadData() {
-  if (!mounted) return;
-  setState(() {
-    fundBalance = info!.userProfile[info!.uuid]?['fund'] ?? '0.0'; // Provide a default value
-    deposit = info!.userProfile[info!.uuid]?['deposit'] ?? '0.0'; // Provide a default value
-    winning = info!.userProfile[info!.uuid]?['winning'] ?? '0.0'; // Provide a default value
-  });
-}
+    if (!mounted) return;
+    setState(() {
+      fundBalance = info?.userProfile[info?.uuid]?['fund'] ?? '0.0'; // Provide a default value
+      deposit = info?.userProfile[info?.uuid]?['deposit'] ?? '0.0'; // Provide a default value
+      winning = info?.userProfile[info?.uuid]?['winning'] ?? '0.0'; // Provide a default value
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,25 +45,27 @@ class _WalletPage extends State<WalletPage> {
         backgroundColor: Colors.white,
         elevation: 0,
       ),
-      body: Container(
-        color: Colors.grey[100],
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            _buildBalanceCard(),
-            SizedBox(height: 16),
-            _buildSection('Deposits', '₹${double.parse(deposit).toStringAsFixed(2)}', 'Add Cash', Colors.green, Icons.add,context),
-            SizedBox(height: 16),
-            _buildSection('Winnings', '₹${double.parse(winning).toStringAsFixed(2)}', 'Withdraw', Colors.orange, Icons.arrow_downward,context),
-            SizedBox(height: 16),
-            _buildInfoSection('Cashback Reward', '₹1.32', 'CASHBACK DETAILS'),
-            SizedBox(height: 16),
-            _buildInfoSection('Bonus Reward', '₹0', 'BONUS DETAILS'),
-            SizedBox(height: 16),
-            _buildOptions('Saved Payment Modes'),
-            SizedBox(height: 8),
-            _buildOptions('Transaction History'),
-          ],
+      body: SingleChildScrollView(
+        child: Container(
+          color: Colors.grey[100],
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              _buildBalanceCard(),
+              SizedBox(height: 16),
+              _buildSection('Deposits', '₹${double.parse(deposit).toStringAsFixed(2)}', 'Add Cash', Colors.green, Icons.add, context),
+              SizedBox(height: 16),
+              _buildSection('Winnings', '₹${double.parse(winning).toStringAsFixed(2)}', 'Withdraw', Colors.orange, Icons.arrow_downward, context),
+              SizedBox(height: 16),
+              _buildInfoSection('Cashback Reward', '₹1.32', 'CASHBACK DETAILS'),
+              SizedBox(height: 16),
+              _buildInfoSection('Bonus Reward', '₹0', 'BONUS DETAILS'),
+              SizedBox(height: 16),
+              _buildOptions('Saved Payment Modes'),
+              SizedBox(height: 8),
+              _buildOptions('Transaction History'),
+            ],
+          ),
         ),
       ),
     );
@@ -95,7 +99,7 @@ class _WalletPage extends State<WalletPage> {
           ),
           SizedBox(height: 8),
           Text(
-            double.parse(fundBalance).toStringAsFixed(2),
+            '₹${double.parse(fundBalance).toStringAsFixed(2)}',
             style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.black),
           ),
         ],
@@ -129,9 +133,13 @@ class _WalletPage extends State<WalletPage> {
             ],
           ),
           ElevatedButton.icon(
-            onPressed: () {
-              if (actionText == 'Add Cash'){
-                Navigator.push(context, MaterialPageRoute(builder: (context) => AddCashPage())).then((_) => _loadData());
+            onPressed: () async {
+              if (actionText == 'Add Cash') {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => AddCashPage()),
+                );
+                _loadData(); // Reload data after returning from AddCashPage
               }
             },
             icon: Icon(icon, color: Colors.white, size: 16),
