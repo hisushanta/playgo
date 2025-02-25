@@ -22,7 +22,7 @@ class ContactUsWidget extends StatelessWidget {
             ),
             const SizedBox(width: 4),
             const Text(
-              "Om Namo",
+              "Play Go",
               style: TextStyle(
                 fontStyle: FontStyle.italic,
                 fontWeight: FontWeight.bold,
