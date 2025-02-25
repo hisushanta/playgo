@@ -116,7 +116,6 @@ class _GoGameHomePageState extends State<GoGameHomePage>{
     fundBalance = info!.userProfile[info!.uuid]?['fund'] ?? '0.0'; // Provide a default value
   });
 }
-
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder(
@@ -352,7 +351,7 @@ class _GoGameHomePageState extends State<GoGameHomePage>{
                       ),
                     ),
                     onTap: (){
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const GoAIBoard(size: 13))).then((_) => _loadData());;
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const GoAIBoard(size: 9))).then((_) => _loadData());;
                     },
                     ),
                   ),
