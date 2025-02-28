@@ -492,27 +492,53 @@ class _GoBoardState extends State<GoBoard> {
     return hoshi;
   }
 
-  Widget _buildStone(Stone stone, double size) {
-    if (stone == Stone.black) {
-      return Container(
-        width: size,
-        height: size,
-        decoration: const BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.black,
+   Widget _buildStone(Stone stone, double size) {
+  if (stone == Stone.black) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.black,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.5),
+            spreadRadius: 2,
+            blurRadius: 5,
+            offset: const Offset(2, 2),
+          ),
+        ],
+        gradient: RadialGradient(
+          colors: [Colors.grey[800]!, Colors.black],
+          center: Alignment.topLeft,
+          radius: 1.5,
         ),
-      );
-    } else if (stone == Stone.white) {
-      return Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.white,
-          border: Border.all(color: Colors.black),
+      ),
+    );
+  } else if (stone == Stone.white) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white,
+        border: Border.all(color: Colors.black),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.5),
+            spreadRadius: 2,
+            blurRadius: 5,
+            offset: const Offset(2, 2),
+          ),
+        ],
+        gradient: RadialGradient(
+          colors: [Colors.white, Colors.grey[300]!],
+          center: Alignment.topLeft,
+          radius: 1.5,
         ),
-      );
-    }
-    return const SizedBox.shrink();
+      ),
+    );
   }
+  return const SizedBox.shrink();
+}
 }
