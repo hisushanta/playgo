@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 
@@ -28,11 +29,27 @@ class _GoAIBoardState extends State<GoAIBoard> {
   int whiteScore = 0;
   bool gameOver = false;
   final Random random = Random(); // For adding randomness to AI
+  Duration _remainingTime = const Duration(minutes: 3); // 3-minute countdown
+  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
     _initializeBoard();
+    _startTimer();
+  }
+
+  void _startTimer() {
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        if (_remainingTime.inSeconds > 0) {
+          _remainingTime = _remainingTime - const Duration(seconds: 1);
+        } else {
+          _timer?.cancel(); // Stop the timer when time runs out
+          _endGame(); // End the game when time runs out
+        }
+      });
+    });
   }
 
   void _initializeBoard() {
@@ -220,72 +237,13 @@ class _GoAIBoardState extends State<GoAIBoard> {
   void _endGame() {
     setState(() {
       gameOver = true;
-      _calculateScore();
     });
+    _timer?.cancel(); // Stop the timer
+    _showWinnerDialog(); // Show the winner dialog
   }
 
-  void _calculateScore() {
-    blackScore = 0;
-    whiteScore = 0;
-
-    List<List<bool>> visited = List.generate(widget.size, (_) => List.filled(widget.size, false));
-
-    for (int y = 0; y < widget.size; y++) {
-      for (int x = 0; x < widget.size; x++) {
-        if (visited[y][x] || board[y][x] != Stone.none) continue;
-
-        List<List<int>> territory = [];
-        Stone? controllingStone;
-
-        void dfs(int i, int j) {
-          if (i < 0 || i >= widget.size || j < 0 || j >= widget.size || visited[j][i]) return;
-          visited[j][i] = true;
-
-          if (board[j][i] == Stone.none) {
-            territory.add([i, j]);
-          } else {
-            if (controllingStone == null) {
-              controllingStone = board[j][i];
-            } else if (controllingStone != board[j][i]) {
-              controllingStone = null;
-            }
-          }
-
-          for (var dir in [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
-            dfs(i + dir[0], j + dir[1]);
-          }
-        }
-
-        dfs(x, y);
-
-        if (controllingStone == Stone.black) {
-          blackScore += territory.length;
-        } else if (controllingStone == Stone.white) {
-          whiteScore += territory.length;
-        }
-      }
-    }
-
-    for (int y = 0; y < widget.size; y++) {
-      for (int x = 0; x < widget.size; x++) {
-        if (board[y][x] == Stone.black) blackScore++;
-        if (board[y][x] == Stone.white) whiteScore++;
-      }
-    }
-  }
-
-  double _getIntersectionX(int x, double cellSize, double padding) {
-    return x * cellSize + padding;
-  }
-
-  double _getIntersectionY(int y, double cellSize, double padding) {
-    return y * cellSize + padding;
-  }
-  void destroyTheScreen(){
-    Navigator.pop(context);
-  }
-  void _showExitDialog() {
-    String winner = blackScore > whiteScore ? "Black" : blackScore == whiteScore ? "Draw":"White";
+  void _showWinnerDialog() {
+    String winner = blackScore > whiteScore ? "Black" : blackScore == whiteScore ? "Draw" : "White";
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -309,7 +267,7 @@ class _GoAIBoardState extends State<GoAIBoard> {
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  winner=="Draw"? "$winner Match":"$winner Wins!",
+                  winner == "Draw" ? "$winner Match" : "$winner Wins!",
                   style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -354,6 +312,26 @@ class _GoAIBoardState extends State<GoAIBoard> {
     );
   }
 
+  void destroyTheScreen() {
+    Navigator.pop(context);
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  // Function to calculate the X position of an intersection
+  double _getIntersectionX(int x, double cellSize, double padding) {
+    return x * cellSize + padding;
+  }
+
+  // Function to calculate the Y position of an intersection
+  double _getIntersectionY(int y, double cellSize, double padding) {
+    return y * cellSize + padding;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -378,21 +356,34 @@ class _GoAIBoardState extends State<GoAIBoard> {
               ),
             ],
           ),
-          child: const Text(
-            'Go AI',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              fontStyle: FontStyle.italic,
-              color: Colors.white,
-              shadows: [
-                Shadow(
-                  color: Colors.black,
-                  offset: Offset(2, 2),
-                  blurRadius: 3,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Go AI',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  fontStyle: FontStyle.italic,
+                  color: Colors.white,
+                  shadows: [
+                    Shadow(
+                      color: Colors.black,
+                      offset: Offset(2, 2),
+                      blurRadius: 3,
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              Text(
+                '${_remainingTime.inMinutes.toString().padLeft(2, '0')}:${(_remainingTime.inSeconds % 60).toString().padLeft(2, '0')}',
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ],
           ),
         ),
         centerTitle: true,
@@ -400,7 +391,7 @@ class _GoAIBoardState extends State<GoAIBoard> {
         actions: [
           IconButton(
             icon: const Icon(Icons.exit_to_app, color: Colors.white),
-            onPressed: _showExitDialog,
+            onPressed: _showWinnerDialog,
           ),
         ],
       ),
@@ -590,52 +581,52 @@ class _GoAIBoardState extends State<GoAIBoard> {
   }
 
   Widget _buildStone(Stone stone, double size) {
-  if (stone == Stone.black) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.black,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.5),
-            spreadRadius: 2,
-            blurRadius: 5,
-            offset: const Offset(2, 2),
+    if (stone == Stone.black) {
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.black,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.5),
+              spreadRadius: 2,
+              blurRadius: 5,
+              offset: const Offset(2, 2),
+            ),
+          ],
+          gradient: RadialGradient(
+            colors: [Colors.grey[800]!, Colors.black],
+            center: Alignment.topLeft,
+            radius: 1.5,
           ),
-        ],
-        gradient: RadialGradient(
-          colors: [Colors.grey[800]!, Colors.black],
-          center: Alignment.topLeft,
-          radius: 1.5,
         ),
-      ),
-    );
-  } else if (stone == Stone.white) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.white,
-        border: Border.all(color: Colors.black),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.5),
-            spreadRadius: 2,
-            blurRadius: 5,
-            offset: const Offset(2, 2),
+      );
+    } else if (stone == Stone.white) {
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.white,
+          border: Border.all(color: Colors.black),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.5),
+              spreadRadius: 2,
+              blurRadius: 5,
+              offset: const Offset(2, 2),
+            ),
+          ],
+          gradient: RadialGradient(
+            colors: [Colors.white, Colors.grey[300]!],
+            center: Alignment.topLeft,
+            radius: 1.5,
           ),
-        ],
-        gradient: RadialGradient(
-          colors: [Colors.white, Colors.grey[300]!],
-          center: Alignment.topLeft,
-          radius: 1.5,
         ),
-      ),
-    );
+      );
+    }
+    return const SizedBox.shrink();
   }
-  return const SizedBox.shrink();
-}
 }
