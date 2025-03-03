@@ -14,7 +14,8 @@ class MoveAI {
 
 class GoAIBoard extends StatefulWidget {
   final int size;
-  const GoAIBoard({Key? key, required this.size}) : super(key: key);
+  final int duration;
+  const GoAIBoard({Key? key, required this.size,required this.duration}) : super(key: key);
 
   @override
   State<GoAIBoard> createState() => _GoAIBoardState();
@@ -29,12 +30,13 @@ class _GoAIBoardState extends State<GoAIBoard> {
   int whiteScore = 0;
   bool gameOver = false;
   final Random random = Random(); // For adding randomness to AI
-  Duration _remainingTime = const Duration(minutes: 3); // 3-minute countdown
+  Duration _remainingTime =  Duration(minutes: 3); // 3-minute countdown
   Timer? _timer;
 
   @override
   void initState() {
     super.initState();
+    _remainingTime = Duration(minutes:widget.duration);
     _initializeBoard();
     _startTimer();
   }
