@@ -117,7 +117,7 @@ class _GoGameHomePageState extends State<GoGameHomePage>{
   });
 }
   void _showAIGameDialog(BuildContext context) {
-  int duration = 4; // Default duration
+      int duration = 8; // Default duration
   int boardSize = 9; // Default board size
 
   showDialog(
@@ -163,7 +163,7 @@ class _GoGameHomePageState extends State<GoGameHomePage>{
                               duration = newValue!;
                             });
                           },
-                          items: List.generate(100, (index) => index + 1)
+                          items: List.generate(93, (index) => index + 8) // Generates 8 to 100
                               .map<DropdownMenuItem<int>>((int value) {
                             return DropdownMenuItem<int>(
                               value: value,
@@ -257,6 +257,178 @@ class _GoGameHomePageState extends State<GoGameHomePage>{
                         context,
                         MaterialPageRoute(
                           builder: (context) => GoAIBoard(size: boardSize, duration: duration),
+                        ),
+                      ).then((_) => _loadData());
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green[400],
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.play_arrow, color: Colors.white),
+                        SizedBox(width: 8),
+                        Text(
+                          'Start',
+                          style: TextStyle(fontSize: 16, color: Colors.white),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+}
+
+void _showTwoPlayerGameDialog(BuildContext context) {
+  int duration = 8; // Default duration
+  int boardSize = 9; // Default board size
+
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20.0),
+            ),
+            title: Center(
+              child: Text(
+                'Set Game Parameters',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Duration Dropdown
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.grey[400]!),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.timer, color: Colors.blue),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: DropdownButton<int>(
+                          value: duration,
+                          onChanged: (int? newValue) {
+                            setState(() {
+                              duration = newValue!;
+                            });
+                          },
+                          items: List.generate(93, (index) => index + 8) // Generates 8 to 100
+                              .map<DropdownMenuItem<int>>((int value) {
+                            return DropdownMenuItem<int>(
+                              value: value,
+                              child: Text(
+                                '$value minutes',
+                                style: TextStyle(fontSize: 16),
+                              ),
+                            );
+                          }).toList(),
+                          underline: SizedBox(), // Remove the default underline
+                          isExpanded: true,
+                          icon: Icon(Icons.arrow_drop_down, color: Colors.blue),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 20), // Spacing between dropdowns
+                // Board Size Dropdown
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.grey[400]!),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.grid_on, color: Colors.green),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: DropdownButton<int>(
+                          value: boardSize,
+                          onChanged: (int? newValue) {
+                            setState(() {
+                              boardSize = newValue!;
+                            });
+                          },
+                          items: [9, 13, 19]
+                              .map<DropdownMenuItem<int>>((int value) {
+                            return DropdownMenuItem<int>(
+                              value: value,
+                              child: Text(
+                                '$value x $value',
+                                style: TextStyle(fontSize: 16),
+                              ),
+                            );
+                          }).toList(),
+                          underline: SizedBox(), // Remove the default underline
+                          isExpanded: true,
+                          icon: Icon(Icons.arrow_drop_down, color: Colors.green),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  // Cancel Button
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop(); // Close the dialog
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red[400],
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.cancel, color: Colors.white),
+                        SizedBox(width: 8),
+                        Text(
+                          'Cancel',
+                          style: TextStyle(fontSize: 16, color: Colors.white),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Start Button
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop(); // Close the dialog
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => GoBoard(size: boardSize, duration: duration),
                         ),
                       ).then((_) => _loadData());
                     },
@@ -471,7 +643,7 @@ class _GoGameHomePageState extends State<GoGameHomePage>{
                       ),
                     ),
                     onTap: (){
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const GoBoard(size: 13))).then((_) => _loadData());
+                      _showTwoPlayerGameDialog(context);
                     },
                     ),
                   ),
