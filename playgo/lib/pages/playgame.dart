@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-
 import 'package:flutter/services.dart';
 
 enum Stone { none, black, white }
@@ -38,25 +37,37 @@ class _GoBoardState extends State<GoBoard> {
     _timeLeft = widget.duration * 60;
     _initializeBoard();
     _startTimer();
-    // Enable both portrait and landscape modes
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-    ]);
 
+    // Delay the orientation logic until after the first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final double shortestSide = MediaQuery.of(context).size.shortestSide;
+      if (shortestSide < 600) {
+        // Phone: Lock to portrait mode
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.portraitUp,
+        ]);
+      } else {
+        // Tablet: Allow both portrait and landscape modes
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.portraitUp,
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+        ]);
+      }
+    });
   }
 
   @override
   void dispose() {
     SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.landscapeLeft,
-    DeviceOrientation.landscapeRight,
-  ]);
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
 
     _timer.cancel(); // Cancel the timer to avoid memory leaks
     super.dispose();
   }
-
 
   void _startTimer() {
     _timer = Timer.periodic(Duration(seconds: 1), (timer) {
@@ -272,6 +283,8 @@ class _GoBoardState extends State<GoBoard> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 253, 192, 100),
       appBar: AppBar(
@@ -328,9 +341,12 @@ class _GoBoardState extends State<GoBoard> {
       ),
       body: LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
-          double boardSize = constraints.maxWidth > constraints.maxHeight
-              ? constraints.maxHeight
-              : constraints.maxWidth;
+          double boardSize = isLandscape
+              ? constraints.maxHeight * 0.6 // Use 60% of height in landscape
+              : constraints.maxWidth > constraints.maxHeight
+                  ? constraints.maxHeight
+                  : constraints.maxWidth;
+
           double padding = boardSize * 0.05;
           boardSize -= padding * 2;
 
@@ -362,7 +378,7 @@ class _GoBoardState extends State<GoBoard> {
                         child: const Icon(Icons.circle, color: Colors.white, size: 30),
                       ),
                       Text(
-                        "White: $whiteScore",
+                        "Score: $whiteScore",
                         style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                       ),
                     ],
@@ -370,7 +386,7 @@ class _GoBoardState extends State<GoBoard> {
                 ),
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 10), // Reduced spacing
 
               // Board
               Center(
@@ -436,7 +452,7 @@ class _GoBoardState extends State<GoBoard> {
                 ),
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 10), // Reduced spacing
 
               // Black Player Card (Below the Board)
               Card(
@@ -460,7 +476,7 @@ class _GoBoardState extends State<GoBoard> {
                         child: const Icon(Icons.circle, color: Colors.black, size: 30),
                       ),
                       Text(
-                        "Black: $blackScore",
+                        "Score: $blackScore",
                         style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                       ),
                     ],

@@ -28,7 +28,7 @@ class GoBoardMatch extends StatefulWidget {
   State<GoBoardMatch> createState() => _GoMultiplayerBoardState();
 }
 
-class _GoMultiplayerBoardState extends State<GoBoardMatch> {
+class _GoMultiplayerBoardState extends State<GoBoardMatch> with WidgetsBindingObserver {
   late List<List<Stone>> board;
   late Stream<DocumentSnapshot<Map<String, dynamic>>> gameStream;
   bool isPlayerTurn = false;
@@ -51,11 +51,13 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
   String currentTurn = 'black'; // Track the current turn
   bool showTurnNotification = false;
   bool isDialogShowing = false;
+  bool isLandscape = false;
 
   @override
   void initState() {
     super.initState();
-    gameTimeLeft = widget.totalGameTime*60;
+    WidgetsBinding.instance.addObserver(this);
+    gameTimeLeft = widget.totalGameTime * 60;
     _initializeBoard();
     gameStream = FirebaseFirestore.instance.collection('games').doc(widget.gameId).snapshots();
     _listenToGameUpdates();
@@ -63,16 +65,50 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
     _startGameTimer();
     _markPlayerAsActive();
     _initializePlayers();
-    // Enable both portrait and landscape modes
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-    ]);
+
+    // Set orientation based on device type (phone or tablet)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final double shortestSide = MediaQuery.of(context).size.shortestSide;
+      if (shortestSide < 600) {
+        // Phone: Lock to portrait mode
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.portraitUp,
+        ]);
+      } else {
+        // Tablet: Allow both portrait and landscape modes
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.portraitUp,
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+        ]);
+      }
+    });
   }
 
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _turnTimer?.cancel();
+    _gameTimer?.cancel();
+    _markPlayerAsInactive();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+    super.dispose();
+  }
+
+  @override
+  void didChangeMetrics() {
+    final orientation = MediaQuery.of(context).orientation;
+    setState(() {
+      isLandscape = orientation == Orientation.landscape;
+    });
+  }
 
   void _initializeBoard() {
     board = List.generate(widget.size, (_) => List.filled(widget.size, Stone.none));
-
   }
 
   void _initializePlayers() async {
@@ -913,23 +949,25 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
     return true;
   }
 
-  @override
-  void dispose() {
-    _turnTimer?.cancel();
-    _gameTimer?.cancel();
-    _markPlayerAsInactive();
-    SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.landscapeLeft,
-    DeviceOrientation.landscapeRight,
-  ]);
-    super.dispose();
-  }
+  // @override
+  // void dispose() {
+  //   _turnTimer?.cancel();
+  //   _gameTimer?.cancel();
+  //   _markPlayerAsInactive();
+  //   SystemChrome.setPreferredOrientations([
+  //   DeviceOrientation.portraitUp,
+  //   DeviceOrientation.landscapeLeft,
+  //   DeviceOrientation.landscapeRight,
+  // ]);
+  //   super.dispose();
+  // }
 
 // [Previous imports and class definitions remain the same until build method]
 
-    @override
+  @override
   Widget build(BuildContext context) {
+    final bool isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 253, 192, 100),
       appBar: AppBar(
@@ -1041,13 +1079,15 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
             ),
           ),
         ],
-      
       ),
       body: LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
-          double boardSize = constraints.maxWidth > constraints.maxHeight - 160 
-              ? constraints.maxHeight - 160 
-              : constraints.maxWidth;
+          double boardSize = isLandscape
+              ? constraints.maxHeight * 0.6 // Use 60% of height in landscape
+              : constraints.maxWidth > constraints.maxHeight
+                  ? constraints.maxHeight
+                  : constraints.maxWidth;
+
           double padding = boardSize * 0.05;
           boardSize -= padding * 2;
           double cellSize = boardSize / (widget.size - 1);
@@ -1055,7 +1095,6 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
 
           return Column(
             children: [
-
               SizedBox(height: 8),
               _buildPlayerInfo(
                 name: userName,
@@ -1065,7 +1104,7 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
                 isCurrentTurn: currentTurn == (player1Stone == 'black' ? 'black' : 'white'),
               ),
               SizedBox(height: 4),
-              
+
               // Board Container with Turn Notification Overlay
               Expanded(
                 child: Stack(
