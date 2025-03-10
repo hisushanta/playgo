@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 enum Stone { none, black, white }
 
@@ -39,6 +40,10 @@ class _GoAIBoardState extends State<GoAIBoard> {
     _remainingTime = Duration(minutes:widget.duration);
     _initializeBoard();
     _startTimer();
+    // Enable both portrait and landscape modes
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+    ]);
   }
 
   void _startTimer() {
@@ -321,6 +326,11 @@ class _GoAIBoardState extends State<GoAIBoard> {
   @override
   void dispose() {
     _timer?.cancel();
+    SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
+  ]);
     super.dispose();
   }
 

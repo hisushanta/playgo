@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:playgo/main.dart';
 import 'package:playgo/pages/home.dart';
+import 'package:flutter/services.dart';
 
 enum Stone { none, black, white }
 
@@ -62,6 +63,10 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
     _startGameTimer();
     _markPlayerAsActive();
     _initializePlayers();
+    // Enable both portrait and landscape modes
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+    ]);
   }
 
 
@@ -913,6 +918,11 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> {
     _turnTimer?.cancel();
     _gameTimer?.cancel();
     _markPlayerAsInactive();
+    SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
+  ]);
     super.dispose();
   }
 

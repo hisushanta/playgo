@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 
+import 'package:flutter/services.dart';
+
 enum Stone { none, black, white }
 
 class Move {
@@ -36,7 +38,25 @@ class _GoBoardState extends State<GoBoard> {
     _timeLeft = widget.duration * 60;
     _initializeBoard();
     _startTimer();
+    // Enable both portrait and landscape modes
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+    ]);
+
   }
+
+  @override
+  void dispose() {
+    SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
+  ]);
+
+    _timer.cancel(); // Cancel the timer to avoid memory leaks
+    super.dispose();
+  }
+
 
   void _startTimer() {
     _timer = Timer.periodic(Duration(seconds: 1), (timer) {
