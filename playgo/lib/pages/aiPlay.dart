@@ -16,7 +16,7 @@ class MoveAI {
 class GoAIBoard extends StatefulWidget {
   final int size;
   final int duration;
-  const GoAIBoard({Key? key, required this.size,required this.duration}) : super(key: key);
+  const GoAIBoard({Key? key, required this.size, required this.duration}) : super(key: key);
 
   @override
   State<GoAIBoard> createState() => _GoAIBoardState();
@@ -31,19 +31,33 @@ class _GoAIBoardState extends State<GoAIBoard> {
   int whiteScore = 0;
   bool gameOver = false;
   final Random random = Random(); // For adding randomness to AI
-  Duration _remainingTime =  Duration(minutes: 3); // 3-minute countdown
+  Duration _remainingTime = Duration(minutes: 3); // 3-minute countdown
   Timer? _timer;
 
   @override
   void initState() {
     super.initState();
-    _remainingTime = Duration(minutes:widget.duration);
+    _remainingTime = Duration(minutes: widget.duration);
     _initializeBoard();
     _startTimer();
-    // Enable both portrait and landscape modes
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-    ]);
+
+    // Delay the orientation logic until after the first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final double shortestSide = MediaQuery.of(context).size.shortestSide;
+      if (shortestSide < 600) {
+        // Phone: Lock to portrait mode
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.portraitUp,
+        ]);
+      } else {
+        // Tablet: Allow both portrait and landscape modes
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.portraitUp,
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+        ]);
+      }
+    });
   }
 
   void _startTimer() {
@@ -327,10 +341,10 @@ class _GoAIBoardState extends State<GoAIBoard> {
   void dispose() {
     _timer?.cancel();
     SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.landscapeLeft,
-    DeviceOrientation.landscapeRight,
-  ]);
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
     super.dispose();
   }
 
@@ -346,6 +360,8 @@ class _GoAIBoardState extends State<GoAIBoard> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 253, 192, 100),
       appBar: AppBar(
@@ -409,9 +425,12 @@ class _GoAIBoardState extends State<GoAIBoard> {
       ),
       body: LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
-          double boardSize = constraints.maxWidth > constraints.maxHeight
-              ? constraints.maxHeight
-              : constraints.maxWidth;
+          double boardSize = isLandscape
+              ? constraints.maxHeight * 0.6 // Use 60% of height in landscape
+              : constraints.maxWidth > constraints.maxHeight
+                  ? constraints.maxHeight
+                  : constraints.maxWidth;
+
           double padding = boardSize * 0.05;
           boardSize -= padding * 2;
 
@@ -425,13 +444,12 @@ class _GoAIBoardState extends State<GoAIBoard> {
               Card(
                 margin: const EdgeInsets.all(10),
                 elevation: 5,
-                color: Colors.grey[200], // Light gray background for better visibility
+                color: Colors.grey[200],
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Circular Indicator Around White Stone Icon
                       Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
@@ -452,7 +470,7 @@ class _GoAIBoardState extends State<GoAIBoard> {
                 ),
               ),
 
-              const SizedBox(height: 20), // Gap between card and board
+              const SizedBox(height: 10), // Reduced spacing
 
               // Board
               Center(
@@ -464,7 +482,7 @@ class _GoAIBoardState extends State<GoAIBoard> {
                       Container(
                         width: boardSize + padding * 2,
                         height: boardSize + padding * 2,
-                        color: const Color(0xFFD3B07C), // Light brown color
+                        color: const Color(0xFFD3B07C),
                       ),
                       for (int i = 0; i < widget.size; i++)
                         Positioned(
@@ -473,7 +491,7 @@ class _GoAIBoardState extends State<GoAIBoard> {
                           width: boardSize,
                           child: Container(
                             height: 1,
-                            color: Colors.black, // Black grid lines
+                            color: Colors.black,
                           ),
                         ),
                       for (int i = 0; i < widget.size; i++)
@@ -483,7 +501,7 @@ class _GoAIBoardState extends State<GoAIBoard> {
                           height: boardSize,
                           child: Container(
                             width: 1,
-                            color: Colors.black, // Black grid lines
+                            color: Colors.black,
                           ),
                         ),
                       if (widget.size == 9 || widget.size == 13 || widget.size == 19)
@@ -520,19 +538,18 @@ class _GoAIBoardState extends State<GoAIBoard> {
                 ),
               ),
 
-              const SizedBox(height: 20), // Gap between board and card
+              const SizedBox(height: 10), // Reduced spacing
 
               // Black Player Card (Below the Board)
               Card(
                 margin: const EdgeInsets.all(10),
                 elevation: 5,
-                color: Colors.grey[200], // Light gray background for better visibility
+                color: Colors.grey[200],
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Circular Indicator Around Black Stone Icon
                       Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
