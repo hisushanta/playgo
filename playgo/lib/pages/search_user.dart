@@ -1,6 +1,8 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:playgo/pages/match_play.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:playgo/main.dart'; // Import your ItemInfo class
 import 'home.dart';
@@ -16,11 +18,19 @@ class _SearchPageState extends State<SearchPage> {
   bool _isSearching = false;
   Timer? _debounce;
   String _selectedBoardSize = '9x9'; // Default board size
+  StreamSubscription<QuerySnapshot>? _confirmationListener;
+  StreamSubscription<QuerySnapshot>? _countdownListener;
+  bool _isDialogShowing = false;
+
 
   @override
   void initState() {
     super.initState();
     _searchController.addListener(_onSearchChanged);
+    _listenForConfirmation(); // Listen for confirmation
+    _listenForCountdown(); // Listen for countdown
+
+
   }
 
   @override
@@ -28,8 +38,125 @@ class _SearchPageState extends State<SearchPage> {
     _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     _debounce?.cancel();
+    _confirmationListener?.cancel();
+    _countdownListener?.cancel();
+
     super.dispose();
   }
+  
+  void _listenForConfirmation() {
+    _confirmationListener = FirebaseFirestore.instance
+        .collection('matchRequests')
+        .where('senderId', isEqualTo: userId) // Listen for requests where the current user is the sender
+        .snapshots()
+        .listen((snapshot) async {
+      if (snapshot.docs.isNotEmpty) {
+        final request = snapshot.docs.first;
+        final requestId = request.id;
+
+        // Check if the confirmation dialog should be shown
+        final showConfirmation = request['showConfirmation'] ?? false;
+
+        if (showConfirmation && !_isDialogShowing) {
+          _isDialogShowing = true;
+
+          // Show the confirmation dialog
+          final confirmed = await showDialog<bool>(
+            context: context,
+            builder: (context) {
+              return AlertDialog(
+                title: Text('Confirm Match', style: TextStyle(color: Colors.blue)),
+                content: Text('The receiver has accepted your match request. Do you want to proceed?'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: Text('Cancel', style: TextStyle(color: Colors.red)),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: Text('Confirm', style: TextStyle(color: Colors.blue)),
+                  ),
+                ],
+              );
+            },
+          );
+
+          // Reset the `showConfirmation` field to prevent re-triggering
+          await FirebaseFirestore.instance
+              .collection('matchRequests')
+              .doc(requestId)
+              .update({'showConfirmation': false});
+
+          _isDialogShowing = false;
+
+          if (confirmed == true) {
+            // Update Firestore to indicate the sender has confirmed
+            await FirebaseFirestore.instance
+                .collection('matchRequests')
+                .doc(requestId)
+                .update({'senderConfirmed': true});
+          } else {
+            // Cancel the match request if the sender declines
+            await FirebaseFirestore.instance
+                .collection('matchRequests')
+                .doc(requestId)
+                .delete();
+          }
+        }
+      }
+    });
+  }
+
+void _listenForCountdown() {
+    _countdownListener = FirebaseFirestore.instance
+        .collection('matchRequests')
+        .where('senderId', isEqualTo: userId) // Listen for requests where the current user is the sender
+        .snapshots()
+        .listen((snapshot) async {
+      if (snapshot.docs.isNotEmpty) {
+        final request = snapshot.docs.first;
+        final requestId = request.id;
+
+        // Check if both users have confirmed
+        final senderConfirmed = request['senderConfirmed'] ?? false;
+        final receiverConfirmed = request['receiverConfirmed'] ?? false;
+        final entryPrice = request['entryPrice']??'0.0';
+        final duration = int.parse(request['duration']);
+
+        final prizePool = double.parse(entryPrice) > 0.0?((double.parse(request['entryPrice'])*2)-(((double.parse(request['entryPrice']) * 2)/100)*2)).toString():"0.0";
+
+        if (senderConfirmed && receiverConfirmed && !_isDialogShowing) {
+          _isDialogShowing = true;
+
+          // Show the countdown dialog
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            builder: (context) => CountdownBottomDialog(
+              time: duration,
+              entryPrice: request['entryPrice'] ?? '0.0',
+              prizePool:prizePool,
+              partnerId: request['receiverId'],
+              boardSize: request['boardSize'] ?? '9x9',
+            ),
+          );
+
+          // Reset the confirmation fields to prevent re-triggering
+          await FirebaseFirestore.instance
+              .collection('matchRequests')
+              .doc(requestId)
+              .update({
+            'senderConfirmed': false,
+            'receiverConfirmed': false,
+          });
+
+          _isDialogShowing = false;
+        }
+      }
+    });
+  }
+
+
 
   void _onSearchChanged() {
     if (_debounce?.isActive ?? false) _debounce?.cancel();
@@ -431,4 +558,233 @@ class _SearchPageState extends State<SearchPage> {
       ),
     );
   }
+}
+
+class CountdownBottomDialog extends StatefulWidget {
+  final int time;
+  final String entryPrice;
+  final String prizePool;
+  final String partnerId;
+  final String boardSize;
+  CountdownBottomDialog({
+    super.key, 
+    required this.time,
+    required this.entryPrice,
+    required this.prizePool,
+    required this.partnerId,
+    required this.boardSize,
+  });
+  
+  @override
+  _CountdownBottomDialogState createState() => _CountdownBottomDialogState();
+}
+
+class _CountdownBottomDialogState extends State<CountdownBottomDialog> with SingleTickerProviderStateMixin {
+  late Timer _timer;
+  int _matchCountdown = 3;
+  late AnimationController _animationController;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: Duration(milliseconds: 500),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.elasticOut,
+      ),
+    );
+    _startTimer();
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  void _startTimer() {
+  
+          _animationController.forward();
+          info!.updateGameStatus("Matched", userId,widget.entryPrice);
+          _startMatchCountdown(widget.partnerId);
+      } 
+
+  void _startMatchCountdown(String partnerId) {
+    String gameId = "";
+  _timer = Timer.periodic(Duration(seconds: 1), (timer) async {
+    if (_matchCountdown > 0) {
+      setState(() {
+        _matchCountdown--;
+      });
+    } else {
+      _timer.cancel();
+      try {
+        // First create the match
+        Map<String, dynamic> partner = await info!.createMatch(
+          userId,
+          partnerId,
+          info!.userProfile[userId]!["username"],
+        );
+        
+        // Update match status to indicate this player is ready
+        await info!.updateMatchStatus(partner['gameId'], userId, true);
+
+        // Start listening for both players to be ready
+        bool bothPlayersReady = false;
+        int attempts = 0;
+        const maxAttempts = 10; // 10 second timeout
+        gameId = partner['gameId'];
+        while (!bothPlayersReady && attempts < maxAttempts) {
+          var matchData = await info!.getMatchStatus(partner['gameId']);
+          String player1Id = partner['gameId'].split("+")[0];
+          String player2Id = partner['gameId'].split("+")[1];
+          if (matchData['${player1Id}Ready'] == true && matchData['${player2Id}Ready'] == true) {
+            bothPlayersReady = true;
+            if (mounted) {
+              await info!.updateUserFund(userId, double.parse(widget.entryPrice),"dec");
+              Navigator.pop(context);
+              _navigateToMatchBoard(partner);
+            }
+            break;
+          }
+          attempts++;
+          await Future.delayed(Duration(seconds: 1));
+        }
+        
+        // If timeout occurs
+        if (!bothPlayersReady && mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Match start timeout. Please try again.')),
+          );
+          // Reset match status
+          await info!.updateMatchStatus(partner['gameId'], userId, false);
+          await info!.updateGameStatus("DeActive", userId, "0.0");
+          await info!.deleteMatch(partner['gameId']);
+        }
+      } catch (e) {
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error starting match. Please try again.')),
+          );
+          await info!.updateGameStatus("DeActive", userId, '0.0');
+          await info!.deleteMatch(gameId);
+        }
+      }
+    }
+  });
+}
+
+
+ 
+
+  void _navigateToMatchBoard(Map<String, dynamic> partner) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => GoBoardMatch(
+          size: widget.boardSize=="9x9"?9:13,
+          gameId: partner['gameId'],
+          playerId: userId,
+          totalGameTime: widget.time,
+          entryPrice: widget.entryPrice,
+          prizePool: widget.prizePool,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    
+      return Container(
+        color: Colors.black.withOpacity(0.7),
+        child: Center(
+          child: ScaleTransition(
+            scale: _scaleAnimation,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.blue.withOpacity(0.3),
+                    spreadRadius: 5,
+                    blurRadius: 15,
+                    offset: Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(15),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.people_alt_rounded,
+                      size: 50,
+                      color: Colors.blue,
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  Text(
+                    "Partner Found!",
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue,
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  Text(
+                    "Game starts in",
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.blue,
+                        width: 3,
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        "$_matchCountdown",
+                        style: TextStyle(
+                          fontSize: 48,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    
 }
