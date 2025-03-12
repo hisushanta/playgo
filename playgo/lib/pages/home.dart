@@ -208,7 +208,7 @@ void _listenForCountdown() {
           showModalBottomSheet(
             context: context,
             isScrollControlled: true,
-            builder: (context) => CountdownBottomDialog(
+            builder: (context) => CountdownBottomDialogForGame(
               time: duration,
               entryPrice: request['entryPrice'] ?? '0.0',
               prizePool:prizePool,
@@ -865,13 +865,13 @@ void _showTwoPlayerGameDialog(BuildContext context) {
   }
 }
 
-class CountdownBottomDialog extends StatefulWidget {
+class CountdownBottomDialogForGame extends StatefulWidget {
   final int time;
   final String entryPrice;
   final String prizePool;
   final String partnerId;
   final String boardSize;
-  CountdownBottomDialog({
+  CountdownBottomDialogForGame({
     super.key, 
     required this.time,
     required this.entryPrice,
@@ -884,7 +884,7 @@ class CountdownBottomDialog extends StatefulWidget {
   _CountdownBottomDialogState createState() => _CountdownBottomDialogState();
 }
 
-class _CountdownBottomDialogState extends State<CountdownBottomDialog> with SingleTickerProviderStateMixin {
+class _CountdownBottomDialogState extends State<CountdownBottomDialogForGame> with SingleTickerProviderStateMixin {
   late Timer _timer;
   int _matchCountdown = 3;
   late AnimationController _animationController;

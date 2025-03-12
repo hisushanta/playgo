@@ -10,7 +10,7 @@ class PaymentOptionsPage extends StatefulWidget {
   _PaymentOptionsPage createState() => _PaymentOptionsPage();
 }
 class _PaymentOptionsPage extends State<PaymentOptionsPage>{
-
+  
   Future<void> _launchUpiPayment(BuildContext context) async {
     debugPrint("Amoung: ${widget.amount}");
     // Your UPI details
