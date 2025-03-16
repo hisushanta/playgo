@@ -224,17 +224,29 @@ void _listenForCountdown() {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text('Search User', style: TextStyle(color: Colors.white)),
-        centerTitle: true,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.blue, Colors.purple],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+              backgroundColor: Colors.white,
+              elevation: 0,
+              title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(
+              'assets/homeIcon.png',
+              width: 24,
+              height: 24,
             ),
-          ),
+            const SizedBox(width: 4),
+            const Text(
+              "Play Go",
+              style: TextStyle(
+                fontStyle: FontStyle.italic,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+          ],
         ),
+        centerTitle: true,
       ),
       body: Padding(
         padding: EdgeInsets.only(
