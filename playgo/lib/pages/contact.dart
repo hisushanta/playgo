@@ -328,27 +328,27 @@ void _listenForCountdown() {
           child: Wrap(
           children: [
             ListTile(
-              leading: Image.network(info!.imageUrls["assets/x-icon.png"]!,width: 24, height: 24, fit: BoxFit.contain,),
+              leading: Image.asset("assets/x-icon.png",width: 24, height: 24, fit: BoxFit.contain,),
               title: const Text('Twitter'),
               onTap: () {
                 Navigator.pop(context);
-                _launchURL('https://twitter.com/lottloapp');
+                _launchURL('https://twitter.com/playgoapp');
               },
             ),
             ListTile(
-              leading: Image.network(info!.imageUrls["assets/facebook-icon.png"]!,width: 24, height: 24, fit: BoxFit.contain,),
+              leading: Image.asset("assets/facebook-icon.png",width: 24, height: 24, fit: BoxFit.contain,),
               title: const Text('Facebook'),
               onTap: () {
                 Navigator.pop(context);
-                _launchURL('https://facebook.com/lottloapp');
+                _launchURL('https://facebook.com/playgoapp');
               },
             ),
             ListTile(
-              leading: Image.network(info!.imageUrls["assets/instagram-icon.png"]!,width: 24, height: 24, fit: BoxFit.contain,),
+              leading: Image.asset("assets/instagram-icon.png",width: 24, height: 24, fit: BoxFit.contain,),
               title: const Text('Instagram'),
               onTap: () {
                 Navigator.pop(context);
-                _launchURL('https://instagram.com/lottloapp');
+                _launchURL('https://instagram.com/playgoapp');
               },
             ),
           ],
