@@ -54,3 +54,6 @@ flutter:
    - 'assets/rupay-card.png'
    - 'assets/hdfc-logo.jpg'
    - 'assets/gpay-logo.png'
+   - 'assets/facebook-icon.png'
+   - 'assets/instagram-icon.png'
+   - 'assets/x-icon.png'
