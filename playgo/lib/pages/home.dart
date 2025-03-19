@@ -741,7 +741,7 @@ void _showTwoPlayerGameDialog(BuildContext context) {
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(30), // Rounded corners
                                     ),
-                                    elevation: 5, // Add shadow
+                                    elevation: 20, // Add shadow
                                   ),
                                   child: Text(
                                     "Tourney Zone",
