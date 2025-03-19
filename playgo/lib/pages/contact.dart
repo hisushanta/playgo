@@ -340,7 +340,7 @@ void _listenForCountdown() {
               title: const Text('Facebook'),
               onTap: () {
                 Navigator.pop(context);
-                _launchURL('https://facebook.com/playgoapp');
+                _launchURL('https://facebook.com/PlayingGoApp');
               },
             ),
             ListTile(
@@ -348,7 +348,7 @@ void _listenForCountdown() {
               title: const Text('Instagram'),
               onTap: () {
                 Navigator.pop(context);
-                _launchURL('https://instagram.com/playgoapp');
+                _launchURL('https://instagram.com/playgo_app');
               },
             ),
           ],
