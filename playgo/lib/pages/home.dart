@@ -40,7 +40,7 @@ class _MyHomePageState extends State<MyHomePage> {
     GoGameHomePage(),
     SearchPage(),
     MatchRequestPage(),
-    const UserProfilePage() 
+    // const UserProfilePage() 
   ];
   
   
@@ -74,11 +74,6 @@ class _MyHomePageState extends State<MyHomePage> {
             selectedIcon: Icon(Icons.shopping_basket_sharp),
             icon: Icon(Icons.shopping_basket_outlined),
             label: 'Request',
-          ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.account_box),
-            icon: Icon(Icons.account_box_outlined),
-            label: 'About',
           ),
           
         ],
@@ -649,7 +644,7 @@ void _showTwoPlayerGameDialog(BuildContext context) {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => AddCashPage()),
+                MaterialPageRoute(builder: (context) => UserProfilePage()),
               ).then((_) => _loadData());
             },
             style: ElevatedButton.styleFrom(
@@ -661,7 +656,7 @@ void _showTwoPlayerGameDialog(BuildContext context) {
                 borderRadius: BorderRadius.circular(20),
               ),
             ),
-            child: Icon(Icons.add,color: Colors.orange,),
+            child: Icon(Icons.settings,color: Colors.orange,),
           ),
         ],
       ),
@@ -759,7 +754,7 @@ void _showTwoPlayerGameDialog(BuildContext context) {
                     ),
                    // Tournament Banner
                   Padding(
-                    padding: EdgeInsets.symmetric(vertical: 2,horizontal: 16),
+                    padding: EdgeInsets.symmetric(vertical: 16,horizontal: 16),
                     child: GestureDetector( 
                       child: Card(
                       elevation: 5,
@@ -858,40 +853,10 @@ void _showTwoPlayerGameDialog(BuildContext context) {
                     ),
                     onTap: (){
                       _showAIGameDialog(context);
-                      // Navigator.push(context, MaterialPageRoute(builder: (context) => const GoAIBoard(size: 9,duration: 4,))).then((_) => _loadData());;
                     },
                     ),
                   ),
 
-                  // Rules Update Banner
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: Card(
-                      elevation: 3,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: Container(
-                        padding: EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.black,
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.rule, color: Colors.white, size: 28),
-                            SizedBox(width: 16),
-                            Expanded(
-                              child: Text(
-                                "Learn Go Rules\nEverything you need to know about the game",
-                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),
