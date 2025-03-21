@@ -344,6 +344,11 @@ Future<Map<String, dynamic>> createMatch(String userId, String partnerId, String
         // Add ready status fields
         "${userId}Ready": false,
         "${partnerId}Ready": false,
+          'emoji': null, // Initialize emoji fields
+          'emojiSender': null,
+          'emojiProfileCardId': null,
+          'emojiTimestamp': null,
+
       };
 
       transaction.set(_firestore.collection('games').doc(matchId), matchData);

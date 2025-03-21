@@ -1,10 +1,13 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:playgo/main.dart';
 import 'package:playgo/pages/home.dart';
 import 'package:flutter/services.dart';
+// import 'package:emoji_picker/emoji_picker.dart'; // Add this package to your pubspec.yaml
+import 'package:flutter/foundation.dart' as foundation;
 
 enum Stone { none, black, white }
 
@@ -52,6 +55,8 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> with WidgetsBindingOb
   bool showTurnNotification = false;
   bool isDialogShowing = false;
   bool isLandscape = false;
+  String? currentEmoji; // Track the current emoji to display
+  String? emojiProfileCardId; // Track which profile card the emoji belongs to
 
   @override
   void initState() {
@@ -65,6 +70,7 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> with WidgetsBindingOb
     _startGameTimer();
     _markPlayerAsActive();
     _initializePlayers();
+    _listenToEmojiUpdates();
 
     // Set orientation based on device type (phone or tablet)
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -84,6 +90,183 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> with WidgetsBindingOb
       }
     });
   }
+
+ void _listenToEmojiUpdates() {
+  FirebaseFirestore.instance.collection('games').doc(widget.gameId).snapshots().listen((snapshot) {
+    if (snapshot.exists) {
+      final data = snapshot.data();
+      if (data != null) {
+        final emoji = data['emoji'];
+        final emojiSender = data['emojiSender'];
+        final emojiTimestamp = data['emojiTimestamp'];
+
+        // Check if the emoji is for the current player and not expired
+        if (emoji != null && emojiSender != null && emojiTimestamp != null) {
+          final now = DateTime.now().millisecondsSinceEpoch;
+          final emojiAge = now - emojiTimestamp;
+
+          if (emojiAge <= 3000) { // Emoji is valid for 3 seconds
+            setState(() {
+              currentEmoji = emoji;
+              emojiProfileCardId = emojiSender; // Only show emoji for the sender
+            });
+
+            // Remove the emoji after 3 seconds
+            Future.delayed(Duration(seconds: 3), () {
+              if (mounted) {
+                setState(() {
+                  currentEmoji = null;
+                  emojiProfileCardId = null;
+                });
+              }
+            });
+          } else {
+            // Emoji has expired
+            setState(() {
+              currentEmoji = null;
+              emojiProfileCardId = null;
+            });
+          }
+        } else {
+          // No emoji data
+          setState(() {
+            currentEmoji = null;
+            emojiProfileCardId = null;
+          });
+        }
+      }
+    }
+  });
+}
+
+  void _showEmojiPicker(String senderId) {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return EmojiPicker(
+          onEmojiSelected: ( category,emoji) {
+            _sendEmoji(emoji.emoji, senderId);
+            Navigator.pop(context);
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _sendEmoji(String emoji, String senderId) async {
+  final gameDoc = FirebaseFirestore.instance.collection('games').doc(widget.gameId);
+  await gameDoc.update({
+    'emoji': emoji,
+    'emojiSender': senderId, // Store the sender's ID
+    'emojiTimestamp': DateTime.now().millisecondsSinceEpoch, // Add timestamp
+  });
+}
+
+Widget _buildPlayerInfo({
+  required String name,
+  required int score,
+  required bool isBlack,
+  required int timeLeft,
+  required bool isCurrentTurn,
+  required String playerId,
+  required bool isCurrentUser,
+}) {
+  return Container(
+    padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+    margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    decoration: BoxDecoration(
+      color: Colors.white.withOpacity(0.9),
+      borderRadius: BorderRadius.circular(15),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.1),
+          spreadRadius: 1,
+          blurRadius: 3,
+          offset: Offset(0, 2),
+        ),
+      ],
+    ),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Row(
+          children: [
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isCurrentTurn ? Colors.blue : Colors.grey,
+                      width: 2,
+                    ),
+                  ),
+                  child: CircularProgressIndicator(
+                    value: timeLeft / 30,
+                    backgroundColor: Colors.grey[300],
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      isCurrentTurn ? Colors.blue : Colors.grey,
+                    ),
+                  ),
+                ),
+                Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isBlack ? Colors.black : Colors.white,
+                    border: Border.all(color: Colors.black, width: 1),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(width: 12),
+            Text(
+              name,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        Row(
+          children: [
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                'Score: $score',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue[700],
+                ),
+              ),
+            ),
+            if (isCurrentUser) // Show emoji button only for the current user
+              IconButton(
+                icon: Icon(Icons.emoji_emotions, color: Colors.blue),
+                onPressed: () => _showEmojiPicker(playerId), // Pass the current user's ID
+              ),
+          ],
+        ),
+        // Display the emoji if it belongs to this profile card
+        if (emojiProfileCardId == playerId && currentEmoji != null)
+          Text(
+            currentEmoji!,
+            style: TextStyle(fontSize: 24),
+          ),
+      ],
+    ),
+  );
+}
 
   @override
   void dispose() {
@@ -130,71 +313,79 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> with WidgetsBindingOb
           whiteTimeLeft = data['whiteTimeLeft'] ?? 30; // Initialize white timer
           isPlayerTurn = (currentTurn == 'black' && widget.playerId == player1Id && player1Stone == 'black') ||
               (currentTurn == 'white' && widget.playerId == player2Id && player2Stone == 'white');
+          
+          
         });
+        // Initialize emoji fields if they don't exist
+      if (data['emoji'] == null) {
+        await gameDoc.update({
+          'emoji': null,
+          'emojiSender': null,
+          'emojiProfileCardId': null,
+          'emojiTimestamp': null,
+        });
+      }
       }
     }
   }
 
-  void _listenToGameUpdates() {
-    gameStream.listen((snapshot) async {
-      if (snapshot.exists) {
-        final data = snapshot.data();
-        if (data != null) {
-          // Check for forfeit first
-          if (data['status'] == 'ended' && data['endReason'] == 'forfeit') {
-            String forfeitedBy = data['forfeitedBy'];
-            if (forfeitedBy != widget.playerId && !isDialogShowing) {
-              // Show win dialog to the opponent
-              _showWinnerDialog(widget.playerId == player1Id ? player1Stone! : player2Stone!);
-              return;
+void _listenToGameUpdates() {
+  gameStream.listen((snapshot) async {
+    if (snapshot.exists) {
+      final data = snapshot.data();
+      if (data != null) {
+        // Check for forfeit first
+        if (data['status'] == 'ended' && data['endReason'] == 'forfeit') {
+          String forfeitedBy = data['forfeitedBy'];
+          if (forfeitedBy != widget.playerId && !isDialogShowing) {
+            // Show win dialog to the opponent
+            _showWinnerDialog(widget.playerId == player1Id ? player1Stone! : player2Stone!);
+            return;
+          }
+          return; // Skip other updates if game ended by forfeit
+        }
+
+        // Regular game updates continue here...
+        setState(() {
+          // Deserialize the board from Firestore
+          final Map<String, dynamic> firestoreBoard = data['board'] ?? {};
+          for (int y = 0; y < widget.size; y++) {
+            for (int x = 0; x < widget.size; x++) {
+              String key = '$x\_$y';
+              String stone = firestoreBoard[key] ?? 'none';
+              board[y][x] = stone == 'black'
+                  ? Stone.black
+                  : stone == 'white'
+                      ? Stone.white
+                      : Stone.none;
             }
-            return; // Skip other updates if game ended by forfeit
           }
 
+          // Update scores
+          blackScore = data['blackScore'] ?? 0;
+          whiteScore = data['whiteScore'] ?? 0;
 
-          // Regular game updates continue here...
-          setState(() {
-            // Deserialize the board from Firestore
-            final Map<String, dynamic> firestoreBoard = data['board'] ?? {};
-            for (int y = 0; y < widget.size; y++) {
-              for (int x = 0; x < widget.size; x++) {
-                String key = '$x\_$y';
-                String stone = firestoreBoard[key] ?? 'none';
-                board[y][x] = stone == 'black'
-                    ? Stone.black
-                    : stone == 'white'
-                        ? Stone.white
-                        : Stone.none;
-              }
-            }
+          // Update missed turns
+          blackMissedTurns = data['blackMissedTurns'] ?? 0;
+          whiteMissedTurns = data['whiteMissedTurns'] ?? 0;
 
-            // Update scores
-            blackScore = data['blackScore'] ?? 0;
-            whiteScore = data['whiteScore'] ?? 0;
-            
-            // Update missed turns
-            blackMissedTurns = data['blackMissedTurns'] ?? 0;
-            whiteMissedTurns = data['whiteMissedTurns'] ?? 0;
-            
-            // Update timers
-            blackTimeLeft = data['blackTimeLeft'] ?? 30;
-            whiteTimeLeft = data['whiteTimeLeft'] ?? 30;
-            
-            // Update current turn
-            currentTurn = data['currentTurn'] ?? 'black';
+          // Update timers
+          blackTimeLeft = data['blackTimeLeft'] ?? 30;
+          whiteTimeLeft = data['whiteTimeLeft'] ?? 30;
 
-            // Update player information
-            player1Id = data['player1Id'];
-            player2Id = data['player2Id'];
-            player1Stone = data['player1Stone'];
-            player2Stone = data['player2Stone'];
-            
+          // Update current turn
+          String newTurn = data['currentTurn'] ?? 'black';
+
+          // Check if the turn has changed
+          if (newTurn != currentTurn) {
+            currentTurn = newTurn;
+
             // Determine if it's the current player's turn
             isPlayerTurn = (currentTurn == 'black' && widget.playerId == player1Id && player1Stone == 'black') ||
                 (currentTurn == 'white' && widget.playerId == player2Id && player2Stone == 'white');
 
-            // Show turn notification if it's player's turn
-            if (isPlayerTurn) {
+            // Show turn notification if it's player's turn (only for moves, not emoji)
+            if (isPlayerTurn && !showTurnNotification) {
               showTurnNotification = true;
               Future.delayed(Duration(seconds: 1), () {
                 if (mounted) {
@@ -204,16 +395,22 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> with WidgetsBindingOb
                 }
               });
             }
+          }
 
-            // Update player names
-            userName = data[player1Id] ?? '';
-            partnerName = data[player2Id] ?? '';
-          });
-        }
+          // Update player information
+          player1Id = data['player1Id'];
+          player2Id = data['player2Id'];
+          player1Stone = data['player1Stone'];
+          player2Stone = data['player2Stone'];
+
+          // Update player names
+          userName = data[player1Id] ?? '';
+          partnerName = data[player2Id] ?? '';
+        });
       }
-    });
+    }
+  });
 }
-
 
   void destroyTheScreen() {
     Navigator.pop(context);
@@ -964,376 +1161,291 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> with WidgetsBindingOb
 
 // [Previous imports and class definitions remain the same until build method]
 
-  @override
-  Widget build(BuildContext context) {
-    final bool isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+ @override
+Widget build(BuildContext context) {
+  final bool isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
 
-    return Scaffold(
+  return Scaffold(
+    backgroundColor: const Color.fromARGB(255, 253, 192, 100),
+    appBar: AppBar(
       backgroundColor: const Color.fromARGB(255, 253, 192, 100),
-      appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 253, 192, 100),
-        leading: IconButton(
-          icon: Icon(Icons.close, color: Colors.red,), // X icon
-          onPressed: _handleGameCancel,
-        ),
-        centerTitle: true,
-        title: Container(
-          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Color(0xFF6A11CB), // Rich purple
-                Color(0xFF2575FC), // Bright blue
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(25),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.3),
-                blurRadius: 8,
-                offset: Offset(0, 4),
-              ),
-              BoxShadow(
-                color: Colors.white.withOpacity(0.1),
-                blurRadius: 4,
-                offset: Offset(0, -1),
-              ),
+      leading: IconButton(
+        icon: Icon(Icons.close, color: Colors.red), // X icon
+        onPressed: _handleGameCancel,
+      ),
+      centerTitle: true,
+      title: Container(
+        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFF6A11CB), // Rich purple
+              Color(0xFF2575FC), // Bright blue
             ],
-            border: Border.all(
-              color: Colors.white.withOpacity(0.2),
-              width: 1.5,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(25),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 8,
+              offset: Offset(0, 4),
             ),
+            BoxShadow(
+              color: Colors.white.withOpacity(0.1),
+              blurRadius: 4,
+              offset: Offset(0, -1),
+            ),
+          ],
+          border: Border.all(
+            color: Colors.white.withOpacity(0.2),
+            width: 1.5,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ShaderMask(
+              shaderCallback: (Rect bounds) {
+                return LinearGradient(
+                  colors: [Colors.amber[300]!, Colors.amber[500]!],
+                ).createShader(bounds);
+              },
+              child: Icon(
+                Icons.emoji_events,
+                color: Colors.white,
+                size: 24,
+              ),
+            ),
+            SizedBox(width: 10),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Prize Pool',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.9),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                Text(
+                  '₹${widget.prizePool}',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                    shadows: [
+                      Shadow(
+                        color: Colors.black.withOpacity(0.3),
+                        offset: Offset(0, 2),
+                        blurRadius: 4,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        Container(
+          margin: EdgeInsets.only(right: 16),
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(15),
           ),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
             children: [
-              ShaderMask(
-                shaderCallback: (Rect bounds) {
-                  return LinearGradient(
-                    colors: [Colors.amber[300]!, Colors.amber[500]!],
-                  ).createShader(bounds);
-                },
-                child: Icon(
-                  Icons.emoji_events,
+              Icon(Icons.timer, size: 18, color: Colors.white),
+              SizedBox(width: 6),
+              Text(
+                '${gameTimeLeft ~/ 60}:${(gameTimeLeft % 60).toString().padLeft(2, '0')}',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
                   color: Colors.white,
-                  size: 24,
                 ),
-              ),
-              SizedBox(width: 10),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Prize Pool',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.9),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  Text(
-                    '₹${widget.prizePool}',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.5,
-                      shadows: [
-                        Shadow(
-                          color: Colors.black.withOpacity(0.3),
-                          offset: Offset(0, 2),
-                          blurRadius: 4,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
               ),
             ],
           ),
         ),
-        actions: [
-          Container(
-            margin: EdgeInsets.only(right: 16),
-            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(15),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.timer, size: 18, color: Colors.white),
-                SizedBox(width: 6),
-                Text(
-                  '${gameTimeLeft ~/ 60}:${(gameTimeLeft % 60).toString().padLeft(2, '0')}',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-      body: LayoutBuilder(
-        builder: (BuildContext context, BoxConstraints constraints) {
-          double boardSize = isLandscape
-              ? constraints.maxHeight * 0.6 // Use 60% of height in landscape
-              : constraints.maxWidth > constraints.maxHeight
-                  ? constraints.maxHeight
-                  : constraints.maxWidth;
+      ],
+    ),
+    body: LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        double boardSize = isLandscape
+            ? constraints.maxHeight * 0.6 // Use 60% of height in landscape
+            : constraints.maxWidth > constraints.maxHeight
+                ? constraints.maxHeight
+                : constraints.maxWidth;
 
-          double padding = boardSize * 0.05;
-          boardSize -= padding * 2;
-          double cellSize = boardSize / (widget.size - 1);
-          double stoneSize = cellSize * 0.8;
+        double padding = boardSize * 0.05;
+        boardSize -= padding * 2;
+        double cellSize = boardSize / (widget.size - 1);
+        double stoneSize = cellSize * 0.8;
 
-          return Column(
-            children: [
-              SizedBox(height: 8),
+        return Column(
+          children: [
+            SizedBox(height: 8),
+            if (player1Id != null) // Add null check
               _buildPlayerInfo(
                 name: userName,
                 score: blackScore,
                 isBlack: player1Stone == 'black',
                 timeLeft: player1Stone == 'black' ? blackTimeLeft : whiteTimeLeft,
                 isCurrentTurn: currentTurn == (player1Stone == 'black' ? 'black' : 'white'),
+                playerId: player1Id!, // Pass player ID
+                isCurrentUser: widget.playerId == player1Id, // Check if this is the current user's card
               ),
-              SizedBox(height: 4),
-
-              // Board Container with Turn Notification Overlay
-              Expanded(
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // Board
-                    Center(
-                      child: Container(
-                        margin: EdgeInsets.symmetric(vertical: 5),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(15),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
-                              spreadRadius: 2,
-                              blurRadius: 5,
-                              offset: Offset(0, 3),
+            SizedBox(height: 4),
+            Expanded(
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Board
+                  Center(
+                    child: Container(
+                      margin: EdgeInsets.symmetric(vertical: 5),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(15),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            spreadRadius: 2,
+                            blurRadius: 5,
+                            offset: Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Stack(
+                        children: [
+                          Container(
+                            width: boardSize + padding * 2,
+                            height: boardSize + padding * 2,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFD3B07C),
+                              borderRadius: BorderRadius.circular(15),
                             ),
-                          ],
-                        ),
-                        child: Stack(
-                          children: [
-                            Container(
-                              width: boardSize + padding * 2,
-                              height: boardSize + padding * 2,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFD3B07C),
-                                borderRadius: BorderRadius.circular(15),
+                          ),
+                          // Grid lines
+                          ...List.generate(widget.size, (i) => 
+                            Positioned(
+                              top: i * cellSize + padding,
+                              left: padding,
+                              child: Container(
+                                width: boardSize,
+                                height: 1,
+                                color: Colors.black.withOpacity(0.7),
                               ),
                             ),
-                            // Grid lines
-                            ...List.generate(widget.size, (i) => 
-                              Positioned(
-                                top: i * cellSize + padding,
-                                left: padding,
-                                child: Container(
-                                  width: boardSize,
-                                  height: 1,
-                                  color: Colors.black.withOpacity(0.7),
-                                ),
+                          ),
+                          ...List.generate(widget.size, (i) => 
+                            Positioned(
+                              left: i * cellSize + padding,
+                              top: padding,
+                              child: Container(
+                                width: 1,
+                                height: boardSize,
+                                color: Colors.black.withOpacity(0.7),
                               ),
                             ),
-                            ...List.generate(widget.size, (i) => 
-                              Positioned(
-                                left: i * cellSize + padding,
-                                top: padding,
-                                child: Container(
-                                  width: 1,
-                                  height: boardSize,
-                                  color: Colors.black.withOpacity(0.7),
-                                ),
+                          ),
+                          // Stones
+                          ...List.generate(
+                            widget.size * widget.size,
+                            (index) {
+                              int x = index % widget.size;
+                              int y = index ~/ widget.size;
+                              if (board[y][x] != Stone.none) {
+                                return Positioned(
+                                  top: y * cellSize + padding - stoneSize / 2,
+                                  left: x * cellSize + padding - stoneSize / 2,
+                                  child: _buildStone(board[y][x], stoneSize),
+                                );
+                              }
+                              return SizedBox.shrink();
+                            },
+                          ),
+                          // Touch Grid
+                          Positioned.fill(
+                            child: GridView.builder(
+                              physics: const NeverScrollableScrollPhysics(),
+                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: widget.size,
                               ),
-                            ),
-                            // Stones
-                            ...List.generate(
-                              widget.size * widget.size,
-                              (index) {
+                              itemCount: widget.size * widget.size,
+                              itemBuilder: (context, index) {
                                 int x = index % widget.size;
                                 int y = index ~/ widget.size;
-                                if (board[y][x] != Stone.none) {
-                                  return Positioned(
-                                    top: y * cellSize + padding - stoneSize / 2,
-                                    left: x * cellSize + padding - stoneSize / 2,
-                                    child: _buildStone(board[y][x], stoneSize),
-                                  );
-                                }
-                                return SizedBox.shrink();
+                                return GestureDetector(
+                                  onTap: () {
+                                    if (isPlayerTurn) {
+                                      _placeStone(x, y);
+                                    }
+                                  },
+                                  child: Container(color: Colors.transparent),
+                                );
                               },
                             ),
-                            // Touch Grid
-                            Positioned.fill(
-                              child: GridView.builder(
-                                physics: const NeverScrollableScrollPhysics(),
-                                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: widget.size,
-                                ),
-                                itemCount: widget.size * widget.size,
-                                itemBuilder: (context, index) {
-                                  int x = index % widget.size;
-                                  int y = index ~/ widget.size;
-                                  return GestureDetector(
-                                    onTap: () {
-                                      if (isPlayerTurn) {
-                                        _placeStone(x, y);
-                                      }
-                                    },
-                                    child: Container(color: Colors.transparent),
-                                  );
-                                },
-                              ),
-                            ),
-                          ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // Turn Notification Overlay (centered on board)
+                  if (isPlayerTurn && showTurnNotification)
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 25, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(25),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.3),
+                            spreadRadius: 2,
+                            blurRadius: 5,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        'Your Turn!',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
-                    
-                    // Turn Notification Overlay (centered on board)
-                    if (isPlayerTurn && showTurnNotification)
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 25, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.9),
-                          borderRadius: BorderRadius.circular(25),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.3),
-                              spreadRadius: 2,
-                              blurRadius: 5,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Text(
-                          'Your Turn!',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
+                ],
               ),
-              
-              SizedBox(height: 4),
+            ),
+            SizedBox(height: 4),
+            if (player2Id != null) // Add null check
               _buildPlayerInfo(
                 name: partnerName,
                 score: whiteScore,
                 isBlack: player2Stone == 'black',
                 timeLeft: player2Stone == 'black' ? blackTimeLeft : whiteTimeLeft,
                 isCurrentTurn: currentTurn == (player2Stone == 'black' ? 'black' : 'white'),
+                playerId: player2Id!, // Pass player ID
+                isCurrentUser: widget.playerId == player2Id, // Check if this is the current user's card
               ),
-              SizedBox(height: 8),
-            ],
-          );
-        },
-      ),
-    );
-  }
+            SizedBox(height: 8),
+          ],
+        );
+      },
+    ),
+  );
+}
 
-  Widget _buildPlayerInfo({
-    required String name,
-    required int score,
-    required bool isBlack,
-    required int timeLeft,
-    required bool isCurrentTurn,
-  }) {
-    return Container(
-      padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9),
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 3,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Stack(
-                alignment: Alignment.center,
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: isCurrentTurn ? Colors.blue : Colors.grey,
-                        width: 2,
-                      ),
-                    ),
-                    child: CircularProgressIndicator(
-                      value: timeLeft / 30,
-                      backgroundColor: Colors.grey[300],
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        isCurrentTurn ? Colors.blue : Colors.grey,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    width: 30,
-                    height: 30,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: isBlack ? Colors.black : Colors.white,
-                      border: Border.all(color: Colors.black, width: 1),
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(width: 12),
-              Text(
-                name,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              'Score: $score',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.blue[700],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  
 
   Widget _buildStone(Stone stone, double size) {
     return Container(
