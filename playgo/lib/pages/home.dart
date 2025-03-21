@@ -40,7 +40,7 @@ class _MyHomePageState extends State<MyHomePage> {
     GoGameHomePage(),
     SearchPage(),
     MatchRequestPage(),
-    const UserProfilePage() 
+    // const UserProfilePage() 
   ];
   
   
@@ -74,11 +74,6 @@ class _MyHomePageState extends State<MyHomePage> {
             selectedIcon: Icon(Icons.shopping_basket_sharp),
             icon: Icon(Icons.shopping_basket_outlined),
             label: 'Request',
-          ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.account_box),
-            icon: Icon(Icons.account_box_outlined),
-            label: 'About',
           ),
           
         ],
@@ -595,20 +590,32 @@ void _showTwoPlayerGameDialog(BuildContext context) {
           return Scaffold(
       backgroundColor: Colors.grey[200],
       appBar: AppBar(
-  backgroundColor: const Color.fromARGB(255, 47, 46, 46),
+  backgroundColor: Colors.white,
   elevation: 0,
   title: Row(
     mainAxisAlignment: MainAxisAlignment.spaceBetween,
     children: [
       // App title aligned to the left
-      Text(
-        "PlayGo",
-        style: TextStyle(
-          color: Colors.white,
-          fontStyle: FontStyle.italic,
-          fontWeight: FontWeight.bold,
+      Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(
+              'assets/homeIcon.png',
+              width: 24,
+              height: 24,
+            ),
+            const SizedBox(width: 4),
+            const Text(
+              "Play Go",
+              style: TextStyle(
+                fontStyle: FontStyle.italic,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+          ],
         ),
-      ),
       // Buttons aligned to the right
       Row(
         children: [
@@ -621,8 +628,9 @@ void _showTwoPlayerGameDialog(BuildContext context) {
               ).then((_) => _loadData());
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
+              backgroundColor:  Colors.white,
               foregroundColor: Colors.green,
+              elevation: 20,
               side: BorderSide(color: Colors.lightGreenAccent),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
@@ -636,18 +644,19 @@ void _showTwoPlayerGameDialog(BuildContext context) {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => AddCashPage()),
+                MaterialPageRoute(builder: (context) => UserProfilePage()),
               ).then((_) => _loadData());
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
               foregroundColor: Colors.orange,
               side: BorderSide(color: Colors.orangeAccent),
+              elevation: 20,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
             ),
-            child: Icon(Icons.add,color: Colors.orange,),
+            child: Icon(Icons.settings,color: Colors.orange,),
           ),
         ],
       ),
@@ -662,63 +671,90 @@ void _showTwoPlayerGameDialog(BuildContext context) {
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  // Top Section
-                  Container(
-                    padding: EdgeInsets.symmetric(vertical: 20),
-                    decoration: BoxDecoration(
-                      color: Colors.black,
-                      borderRadius: BorderRadius.only(
-                        bottomLeft: Radius.circular(20),
-                        bottomRight: Radius.circular(20),
+                    // Top Section
+                    Container(
+                      padding: EdgeInsets.symmetric(vertical: 20),
+                      decoration: BoxDecoration(
+                        color: Colors.black, // Use a dark background for contrast
+                        borderRadius: BorderRadius.only(
+                          bottomLeft: Radius.circular(20),
+                          bottomRight: Radius.circular(20),
+                        ),
+                      ),
+                      child: Stack(
+                        children: [
+                          // Background Image
+                          ClipRRect(
+                            borderRadius: BorderRadius.only(
+                              bottomLeft: Radius.circular(20),
+                              bottomRight: Radius.circular(20),
+                            ),
+                            child: Image.asset(
+                              'assets/goBoard.jpg', // Replace with your image path
+                              width: double.infinity,
+                              height: 250, // Adjust height as needed
+                              fit: BoxFit.cover, // Ensure the image covers the area
+                              opacity: AlwaysStoppedAnimation(0.7), // Add opacity for better text visibility
+                            ),
+                          ),
+                          // Content Overlay
+                          Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                // Title and Subtitle
+                                Text(
+                                  "Go Game",
+                                  style: TextStyle(
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                SizedBox(height: 8),
+                                Text(
+                                  "The Ancient Strategy Game",
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.white70,
+                                  ),
+                                ),
+                                SizedBox(height: 20),
+                                // Start Match Button
+                                ElevatedButton(
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(builder: (context) => TournamentPage()),
+                                    ).then((_) => _loadData());
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.white,
+                                    foregroundColor: Colors.black,
+                                    padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(30), // Rounded corners
+                                    ),
+                                    elevation: 20, // Add shadow
+                                  ),
+                                  child: Text(
+                                    "Tourney Zone",
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    child: Column(
-                      children: [
-                        Image.asset(
-                          'assets/goBoard.jpg', // Placeholder for the Go board image
-                          width: double.maxFinite, 
-                        ),
-                        Text(
-                          "Go Game",
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          "The Ancient Strategy Game",
-                          style: TextStyle(color: Colors.grey[400]),
-                        ),
-                        SizedBox(height: 16),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          onPressed: () {
-                            Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) =>  TournamentPage()),).then((_) => _loadData());
-                          },
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 40, vertical: 10),
-                            child: Text(
-                              "Start Match",
-                              style: TextStyle(color: Colors.black, fontSize: 18),
-                            ),
-                          ),
-                          
-                        ),
-                      ],
-                    ),
-                  ),
                    // Tournament Banner
                   Padding(
-                    padding: EdgeInsets.symmetric(vertical: 2,horizontal: 16),
+                    padding: EdgeInsets.symmetric(vertical: 16,horizontal: 16),
                     child: GestureDetector( 
                       child: Card(
                       elevation: 5,
@@ -817,40 +853,10 @@ void _showTwoPlayerGameDialog(BuildContext context) {
                     ),
                     onTap: (){
                       _showAIGameDialog(context);
-                      // Navigator.push(context, MaterialPageRoute(builder: (context) => const GoAIBoard(size: 9,duration: 4,))).then((_) => _loadData());;
                     },
                     ),
                   ),
 
-                  // Rules Update Banner
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: Card(
-                      elevation: 3,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: Container(
-                        padding: EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.black,
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.rule, color: Colors.white, size: 28),
-                            SizedBox(width: 16),
-                            Expanded(
-                              child: Text(
-                                "Learn Go Rules\nEverything you need to know about the game",
-                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),

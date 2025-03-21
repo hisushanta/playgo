@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:playgo/main.dart';
+import 'package:playgo/pages/about_pages.dart';
 import 'package:playgo/pages/wallet_pages.dart';
 import 'fund_page.dart';
 import 'home.dart';
@@ -260,7 +261,7 @@ void _listenForCountdown() {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => AddCashPage()),
+                MaterialPageRoute(builder: (context) => UserProfilePage()),
               );
             },
             style: ElevatedButton.styleFrom(
@@ -271,7 +272,7 @@ void _listenForCountdown() {
                 borderRadius: BorderRadius.circular(20),
               ),
             ),
-            child: Icon(Icons.add,color: Colors.orange,),
+            child: Icon(Icons.settings,color: Colors.orange,),
           ),
               ],
             ),
