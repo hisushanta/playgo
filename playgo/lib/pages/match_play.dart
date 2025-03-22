@@ -1,13 +1,10 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:playgo/main.dart';
 import 'package:playgo/pages/home.dart';
 import 'package:flutter/services.dart';
-// import 'package:emoji_picker/emoji_picker.dart'; // Add this package to your pubspec.yaml
-import 'package:flutter/foundation.dart' as foundation;
 
 enum Stone { none, black, white }
 
@@ -57,6 +54,7 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> with WidgetsBindingOb
   bool isLandscape = false;
   String? currentEmoji; // Track the current emoji to display
   String? emojiProfileCardId; // Track which profile card the emoji belongs to
+  Map<String, String> playerEmojis = {}; // Track emojis for both players
 
   @override
   void initState() {
@@ -107,31 +105,27 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> with WidgetsBindingOb
 
           if (emojiAge <= 3000) { // Emoji is valid for 3 seconds
             setState(() {
-              currentEmoji = emoji;
-              emojiProfileCardId = emojiSender; // Only show emoji for the sender
+              playerEmojis[emojiSender] = emoji; // Add emoji for the sender
             });
 
             // Remove the emoji after 3 seconds
             Future.delayed(Duration(seconds: 3), () {
               if (mounted) {
                 setState(() {
-                  currentEmoji = null;
-                  emojiProfileCardId = null;
+                  playerEmojis.remove(emojiSender); // Remove emoji for the sender
                 });
               }
             });
           } else {
             // Emoji has expired
             setState(() {
-              currentEmoji = null;
-              emojiProfileCardId = null;
+              playerEmojis.remove(emojiSender); // Remove expired emoji
             });
           }
         } else {
           // No emoji data
           setState(() {
-            currentEmoji = null;
-            emojiProfileCardId = null;
+            playerEmojis.clear(); // Clear all emojis
           });
         }
       }
@@ -258,9 +252,9 @@ Widget _buildPlayerInfo({
           ],
         ),
         // Display the emoji if it belongs to this profile card
-        if (emojiProfileCardId == playerId && currentEmoji != null)
+        if (playerEmojis.containsKey(playerId))
           Text(
-            currentEmoji!,
+            playerEmojis[playerId]!,
             style: TextStyle(fontSize: 24),
           ),
       ],
@@ -729,32 +723,6 @@ void _listenToGameUpdates() {
 
 
   
-  void _endGame() async {
-    _turnTimer?.cancel();
-    _gameTimer?.cancel();
-
-    String winner = blackMissedTurns >= 3 ? 'white' : 'black';
-    info!.updateGameStatus("DeActive",player1Id!,"0.0");
-    info!.updateGameStatus("DeActive", player2Id!,"0.0");
-    // Update game state
-    await FirebaseFirestore.instance.collection('games').doc(widget.gameId).update({
-      'status': 'ended',
-      'winner': winner,
-      'endReason': 'missed_turns'
-    });
-
-    _showWinnerDialog(winner);
-
-    // Clean up game
-    await Future.delayed(Duration(seconds: 5));
-    await FirebaseFirestore.instance.collection('games').doc(widget.gameId).update({
-      'activePlayers': [],
-    });
-    await FirebaseFirestore.instance.collection('games').doc(widget.gameId).delete();
-    
-  }
-
-
   List<List<int>> _findGroup(int x, int y, Stone stone) {
     List<List<int>> group = [];
     List<List<int>> visited = List.generate(widget.size, (_) => List.filled(widget.size, 0));
@@ -1106,60 +1074,6 @@ void _listenToGameUpdates() {
     return false;
   }
 
-  // Check if a move violates the Ko rule
-  static bool isKoViolation(List<List<Stone>> board, int x, int y, Stone stone, List<List<Stone>>? previousBoard) {
-    if (previousBoard == null) return false;
-    
-    // Make a copy of the current board and simulate the move
-    List<List<Stone>> newBoard = List.generate(
-      board.length,
-      (i) => List.generate(board[i].length, (j) => board[i][j])
-    );
-    
-    newBoard[y][x] = stone;
-    
-    // Check captures that would result from this move
-    Stone opponent = stone == Stone.black ? Stone.white : Stone.black;
-    for (var dir in [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
-      int nx = x + dir[0];
-      int ny = y + dir[1];
-      if (isValidPosition(newBoard, nx, ny) && newBoard[ny][nx] == opponent) {
-        List<List<int>> opponentGroup = findGroup(newBoard, nx, ny, opponent);
-        if (!hasLiberty(newBoard, opponentGroup)) {
-          // Remove captured stones
-          for (var pos in opponentGroup) {
-            newBoard[pos[1]][pos[0]] = Stone.none;
-          }
-        }
-      }
-    }
-    
-    // Compare with previous board state
-    for (int i = 0; i < board.length; i++) {
-      for (int j = 0; j < board.length; j++) {
-        if (newBoard[i][j] != previousBoard[i][j]) {
-          return false;
-        }
-      }
-    }
-    
-    return true;
-  }
-
-  // @override
-  // void dispose() {
-  //   _turnTimer?.cancel();
-  //   _gameTimer?.cancel();
-  //   _markPlayerAsInactive();
-  //   SystemChrome.setPreferredOrientations([
-  //   DeviceOrientation.portraitUp,
-  //   DeviceOrientation.landscapeLeft,
-  //   DeviceOrientation.landscapeRight,
-  // ]);
-  //   super.dispose();
-  // }
-
-// [Previous imports and class definitions remain the same until build method]
 
  @override
 Widget build(BuildContext context) {
