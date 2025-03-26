@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter/services.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:playgo/pages/info.dart';
 
 enum Stone { none, black, white }
 
@@ -30,7 +32,8 @@ class _GoBoardState extends State<GoBoard> {
   bool gameOver = false;
   int _timeLeft = 180; // 3 minutes in seconds
   late Timer _timer;
-
+  PlaceStoneSound placeStoneSound = PlaceStoneSound();
+  
   @override
   void initState() {
     super.initState();
@@ -64,8 +67,8 @@ class _GoBoardState extends State<GoBoard> {
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
-
     _timer.cancel(); // Cancel the timer to avoid memory leaks
+    placeStoneSound.disposeStoneSound();
     super.dispose();
   }
 
@@ -162,7 +165,8 @@ class _GoBoardState extends State<GoBoard> {
     return valid;
   }
 
-  void _placeStone(int x, int y) {
+
+  void _placeStone(int x, int y) async {
     if (!gameOver && _isValidMove(x, y)) {
       setState(() {
         board[y][x] = currentPlayer;
@@ -182,6 +186,9 @@ class _GoBoardState extends State<GoBoard> {
 
         currentPlayer = currentPlayer == Stone.black ? Stone.white : Stone.black;
       });
+      // Play the sound when a stone is placed
+      await placeStoneSound.playStoneSound();
+
     }
   }
 

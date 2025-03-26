@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:playgo/pages/info.dart';
 
 enum Stone { none, black, white }
 
@@ -33,7 +34,7 @@ class _GoAIBoardState extends State<GoAIBoard> {
   final Random random = Random(); // For adding randomness to AI
   Duration _remainingTime = Duration(minutes: 3); // 3-minute countdown
   Timer? _timer;
-
+  PlaceStoneSound placeStoneSound = PlaceStoneSound();
   @override
   void initState() {
     super.initState();
@@ -215,7 +216,7 @@ class _GoAIBoardState extends State<GoAIBoard> {
     return captures; // Allow the move if it captures opponent stones
   }
 
-  void _placeStone(int x, int y) {
+  void _placeStone(int x, int y) async {
     if (!gameOver && _isValidMove(x, y, board, currentPlayer)) {
       setState(() {
         board[y][x] = currentPlayer;
@@ -235,12 +236,14 @@ class _GoAIBoardState extends State<GoAIBoard> {
 
         currentPlayer = currentPlayer == Stone.black ? Stone.white : Stone.black;
       });
-
+      
       if (currentPlayer == aiPlayer && !gameOver) {
         Future.delayed(const Duration(milliseconds: 500), () {
           _makeAiMove();
         });
       }
+      await placeStoneSound.playStoneSound();
+
     }
   }
 
@@ -340,6 +343,7 @@ class _GoAIBoardState extends State<GoAIBoard> {
   @override
   void dispose() {
     _timer?.cancel();
+    placeStoneSound.disposeStoneSound();
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
       DeviceOrientation.landscapeLeft,

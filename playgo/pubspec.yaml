@@ -37,6 +37,7 @@ dependencies:
   shimmer: ^3.0.0
   google_fonts: ^6.2.1
   emoji_picker_flutter: ^4.3.0
+  audioplayers: ^6.4.0
   
 dev_dependencies:
   flutter_test:
@@ -58,3 +59,4 @@ flutter:
    - 'assets/facebook-icon.png'
    - 'assets/instagram-icon.png'
    - 'assets/x-icon.png'
+   - "assets/key_sound.mp3"

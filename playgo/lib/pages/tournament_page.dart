@@ -189,8 +189,9 @@ void _listenForCountdown() {
     });
   }
 
-  void updateFund(){
+  void updateFund() async {
     _loadData();
+    await info!.updateGameStatus("DeActive", userId, "0.0");
   }
 
   void applyFilter(String filter) {
