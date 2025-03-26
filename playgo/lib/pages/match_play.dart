@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:playgo/main.dart';
 import 'package:playgo/pages/home.dart';
 import 'package:flutter/services.dart';
+import 'package:playgo/pages/info.dart';
 
 enum Stone { none, black, white }
 
@@ -55,6 +56,7 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> with WidgetsBindingOb
   String? currentEmoji; // Track the current emoji to display
   String? emojiProfileCardId; // Track which profile card the emoji belongs to
   Map<String, String> playerEmojis = {}; // Track emojis for both players
+  PlaceStoneSound placeStoneSound = PlaceStoneSound();
 
   @override
   void initState() {
@@ -90,47 +92,38 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> with WidgetsBindingOb
   }
 
  void _listenToEmojiUpdates() {
-  FirebaseFirestore.instance.collection('games').doc(widget.gameId).snapshots().listen((snapshot) {
-    if (snapshot.exists) {
-      final data = snapshot.data();
-      if (data != null) {
-        final emoji = data['emoji'];
-        final emojiSender = data['emojiSender'];
-        final emojiTimestamp = data['emojiTimestamp'];
+  FirebaseFirestore.instance
+    .collection('games')
+    .doc(widget.gameId)
+    .collection('emojiUpdates')
+    .orderBy('timestamp', descending: true)
+    .limit(1)
+    .snapshots()
+    .listen((snapshot) {
+      if (snapshot.docs.isNotEmpty) {
+        final doc = snapshot.docs.first;
+        final emoji = doc['emoji'];
+        final senderId = doc['senderId'];
+        final timestamp = doc['timestamp'];
 
-        // Check if the emoji is for the current player and not expired
-        if (emoji != null && emojiSender != null && emojiTimestamp != null) {
-          final now = DateTime.now().millisecondsSinceEpoch;
-          final emojiAge = now - emojiTimestamp;
-
-          if (emojiAge <= 3000) { // Emoji is valid for 3 seconds
-            setState(() {
-              playerEmojis[emojiSender] = emoji; // Add emoji for the sender
-            });
-
-            // Remove the emoji after 3 seconds
-            Future.delayed(Duration(seconds: 3), () {
-              if (mounted) {
-                setState(() {
-                  playerEmojis.remove(emojiSender); // Remove emoji for the sender
-                });
-              }
-            });
-          } else {
-            // Emoji has expired
-            setState(() {
-              playerEmojis.remove(emojiSender); // Remove expired emoji
-            });
-          }
-        } else {
-          // No emoji data
+        // Show emoji only if it's recent (within 3 seconds)
+        if (DateTime.now().millisecondsSinceEpoch - timestamp <= 3000) {
           setState(() {
-            playerEmojis.clear(); // Clear all emojis
+            playerEmojis[senderId] = emoji;
+          });
+
+          // Remove after 3 seconds
+          Future.delayed(Duration(seconds: 3), () {
+            if (mounted) {
+              setState(() {
+                playerEmojis.remove(senderId);
+              });
+            }
           });
         }
       }
-    }
-  });
+    });
+
 }
 
   void _showEmojiPicker(String senderId) {
@@ -148,12 +141,17 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> with WidgetsBindingOb
   }
 
   Future<void> _sendEmoji(String emoji, String senderId) async {
-  final gameDoc = FirebaseFirestore.instance.collection('games').doc(widget.gameId);
-  await gameDoc.update({
-    'emoji': emoji,
-    'emojiSender': senderId, // Store the sender's ID
-    'emojiTimestamp': DateTime.now().millisecondsSinceEpoch, // Add timestamp
-  });
+  
+  await FirebaseFirestore.instance
+    .collection('games')
+    .doc(widget.gameId)
+    .collection('emojiUpdates')
+    .add({
+      'emoji': emoji,
+      'senderId': senderId,
+      'timestamp': DateTime.now().millisecondsSinceEpoch,
+    });
+
 }
 
 Widget _buildPlayerInfo({
@@ -273,6 +271,7 @@ Widget _buildPlayerInfo({
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
+    placeStoneSound.disposeStoneSound();
     super.dispose();
   }
 
@@ -310,15 +309,6 @@ Widget _buildPlayerInfo({
           
           
         });
-        // Initialize emoji fields if they don't exist
-      if (data['emoji'] == null) {
-        await gameDoc.update({
-          'emoji': null,
-          'emojiSender': null,
-          'emojiProfileCardId': null,
-          'emojiTimestamp': null,
-        });
-      }
       }
     }
   }
@@ -338,6 +328,30 @@ void _listenToGameUpdates() {
           }
           return; // Skip other updates if game ended by forfeit
         }
+
+        // Check if the board has changed
+        bool boardChanged = false;
+        final Map<String, dynamic> firestoreBoard = data['board'] ?? {};
+        for (int y = 0; y < widget.size; y++) {
+          for (int x = 0; x < widget.size; x++) {
+            String key = '$x\_$y';
+            String stone = firestoreBoard[key] ?? 'none';
+            Stone newStone = stone == 'black' ? Stone.black : 
+                           stone == 'white' ? Stone.white : Stone.none;
+            
+            if (board[y][x] != newStone) {
+              boardChanged = true;
+              break;
+            }
+          }
+          if (boardChanged) break;
+        }
+
+        // Play sound if board changed (stone was placed)
+        if (boardChanged) {
+          await placeStoneSound.playStoneSound();
+        }
+
 
         // Regular game updates continue here...
         setState(() {
@@ -586,7 +600,12 @@ void _listenToGameUpdates() {
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => Dialog(
+        builder: (context) => WillPopScope(
+        onWillPop: () async {
+          // Prevent back button from closing the dialog
+          return false;
+        },
+        child: Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Container(
             padding: EdgeInsets.all(20),
@@ -648,6 +667,7 @@ void _listenToGameUpdates() {
             ),
           ),
         ),
+        ),
       );
     }
     else{
@@ -656,7 +676,12 @@ void _listenToGameUpdates() {
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => Dialog(
+        builder: (context) => WillPopScope(
+        onWillPop: () async {
+          // Prevent back button from closing the dialog
+          return false;
+        },
+         child: Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Container(
             padding: EdgeInsets.all(20),
@@ -715,6 +740,7 @@ void _listenToGameUpdates() {
               ],
             ),
           ),
+        ),
         ),
       );
     }
@@ -825,6 +851,9 @@ void _listenToGameUpdates() {
           );
           return;
         }
+        // Play sound for current player's move
+        await placeStoneSound.playStoneSound();
+
 
         setState(() {
           board[y][x] = currentStone;
@@ -861,6 +890,7 @@ void _listenToGameUpdates() {
                     : 'none';
           }
         }
+
 
         // Switch turns
         String nextTurn = currentTurn == 'black' ? 'white' : 'black';

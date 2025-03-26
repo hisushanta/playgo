@@ -1,3 +1,4 @@
+import 'package:audioplayers/audioplayers.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -344,10 +345,6 @@ Future<Map<String, dynamic>> createMatch(String userId, String partnerId, String
         // Add ready status fields
         "${userId}Ready": false,
         "${partnerId}Ready": false,
-          'emoji': null, // Initialize emoji fields
-          'emojiSender': null,
-          'emojiProfileCardId': null,
-          'emojiTimestamp': null,
 
       };
 
@@ -596,6 +593,24 @@ Future<void> removeLoveFromFirestore(String loveId) async{
       print('Error accepting match request: $e');
       rethrow;
     }
+  }
+
+}
+
+class PlaceStoneSound{
+  final AudioPlayer audioPlayer = AudioPlayer();
+
+  Future<void> playStoneSound() async {
+    try {
+      await audioPlayer.stop(); // Stop any currently playing sound
+      await audioPlayer.play(AssetSource('key_sound.mp3')); // Play the sound
+    } catch (e) {
+      print('Error playing sound: $e');
+    }
+  }
+
+  void disposeStoneSound(){
+    audioPlayer.dispose();
   }
 
 }
