@@ -21,6 +21,7 @@ class _SearchPageState extends State<SearchPage> {
   StreamSubscription<QuerySnapshot>? _confirmationListener;
   StreamSubscription<QuerySnapshot>? _countdownListener;
   bool _isDialogShowing = false;
+  final FocusNode _searchFocusNode = FocusNode();  // Add this line
 
 
   @override
@@ -40,7 +41,7 @@ class _SearchPageState extends State<SearchPage> {
     _debounce?.cancel();
     _confirmationListener?.cancel();
     _countdownListener?.cancel();
-
+    _searchFocusNode.dispose();
     super.dispose();
   }
   
@@ -200,6 +201,8 @@ void _listenForCountdown() {
         SnackBar(content: Text('Your fund is low.')),
       );
     } else{
+
+
       final success = await info!.sendMatchRequest(
         userId,
         _foundUser!['id'],
@@ -208,6 +211,13 @@ void _listenForCountdown() {
         _selectedBoardSize, // Pass the selected board size
       );
       if (success) {
+        // Clear the search box and remove focus
+        _searchController.clear();
+        _searchFocusNode.unfocus();
+        
+        setState(() {
+          _foundUser = null;  // Clear the found user
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Match request sent!')),
         );
@@ -273,6 +283,7 @@ void _listenForCountdown() {
                 ),
                 child: TextField(
                   controller: _searchController,
+                  focusNode: _searchFocusNode,  // Add this
                   decoration: InputDecoration(
                     hintText: 'Enter User ID',
                     border: InputBorder.none,
