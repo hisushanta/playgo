@@ -71,7 +71,7 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> with WidgetsBindingOb
     _markPlayerAsActive();
     _initializePlayers();
     _listenToEmojiUpdates();
-
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);  // to only hide the status bar
     // Set orientation based on device type (phone or tablet)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final double shortestSide = MediaQuery.of(context).size.shortestSide;
@@ -266,6 +266,8 @@ Widget _buildPlayerInfo({
     _turnTimer?.cancel();
     _gameTimer?.cancel();
     _markPlayerAsInactive();
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);  // to only hide the status bar
+
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
       DeviceOrientation.landscapeLeft,
