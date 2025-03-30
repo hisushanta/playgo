@@ -40,6 +40,7 @@ class _GoBoardState extends State<GoBoard> {
     _timeLeft = widget.duration * 60;
     _initializeBoard();
     _startTimer();
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);  // to only hide the status bar
 
     // Delay the orientation logic until after the first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -69,6 +70,8 @@ class _GoBoardState extends State<GoBoard> {
     ]);
     _timer.cancel(); // Cancel the timer to avoid memory leaks
     placeStoneSound.disposeStoneSound();
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+
     super.dispose();
   }
 

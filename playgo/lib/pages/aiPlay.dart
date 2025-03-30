@@ -41,6 +41,7 @@ class _GoAIBoardState extends State<GoAIBoard> {
     _remainingTime = Duration(minutes: widget.duration);
     _initializeBoard();
     _startTimer();
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);  // to only hide the status bar
 
     // Delay the orientation logic until after the first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -344,6 +345,7 @@ class _GoAIBoardState extends State<GoAIBoard> {
   void dispose() {
     _timer?.cancel();
     placeStoneSound.disposeStoneSound();
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
       DeviceOrientation.landscapeLeft,
@@ -365,7 +367,6 @@ class _GoAIBoardState extends State<GoAIBoard> {
   @override
   Widget build(BuildContext context) {
     final bool isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
-
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 253, 192, 100),
       appBar: AppBar(
