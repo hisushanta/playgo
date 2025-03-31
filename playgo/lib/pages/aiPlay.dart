@@ -455,16 +455,31 @@ class _GoAIBoardState extends State<GoAIBoard> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: currentPlayer == Stone.white ? Colors.green : Colors.grey,
-                            width: 2,
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.center, // Center the text below stone
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: currentPlayer == Stone.white ? Colors.green : Colors.grey,
+                                width: 2,
+                              ),
+                            ),
+                            child: const Icon(Icons.circle, color: Colors.white, size: 30),
                           ),
-                        ),
-                        child: const Icon(Icons.circle, color: Colors.white, size: 30),
+                          const SizedBox(height: 4),
+                          const Text(
+                            "AI Bot",
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
                       ),
                       Text(
                         "White: $whiteScore",
@@ -474,6 +489,7 @@ class _GoAIBoardState extends State<GoAIBoard> {
                   ),
                 ),
               ),
+
 
               const SizedBox(height: 10), // Reduced spacing
 
@@ -546,34 +562,50 @@ class _GoAIBoardState extends State<GoAIBoard> {
               const SizedBox(height: 10), // Reduced spacing
 
               // Black Player Card (Below the Board)
-              Card(
-                margin: const EdgeInsets.all(10),
-                elevation: 5,
-                color: Colors.grey[200],
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: currentPlayer == Stone.black ? Colors.green : Colors.grey,
-                            width: 2,
+             Card(
+              margin: const EdgeInsets.all(10),
+              elevation: 5,
+              color: Colors.grey[200],
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center, // Center the text below stone
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: currentPlayer == Stone.black ? Colors.green : Colors.grey,
+                              width: 2,
+                            ),
+                          ),
+                          child: const Icon(Icons.circle, color: Colors.black, size: 30),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          "You",
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey,
                           ),
                         ),
-                        child: const Icon(Icons.circle, color: Colors.black, size: 30),
-                      ),
-                      Text(
-                        "Black: $blackScore",
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
+                    Text(
+                      "Black: $blackScore",
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                  ],
                 ),
               ),
+            ),
+
             ],
           );
         },
