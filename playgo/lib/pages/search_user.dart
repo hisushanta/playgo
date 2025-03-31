@@ -1,10 +1,9 @@
 import 'dart:async';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:playgo/pages/match_play.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:playgo/main.dart'; // Import your ItemInfo class
+import 'package:playgo/main.dart';
 import 'home.dart';
 
 class SearchPage extends StatefulWidget {
@@ -17,21 +16,24 @@ class _SearchPageState extends State<SearchPage> {
   Map<String, dynamic>? _foundUser;
   bool _isSearching = false;
   Timer? _debounce;
-  String _selectedBoardSize = '9x9'; // Default board size
+  String _selectedBoardSize = '9x9';
   StreamSubscription<QuerySnapshot>? _confirmationListener;
   StreamSubscription<QuerySnapshot>? _countdownListener;
   bool _isDialogShowing = false;
-  final FocusNode _searchFocusNode = FocusNode();  // Add this line
-
+  final FocusNode _searchFocusNode = FocusNode();
+  final TextEditingController _durationController = TextEditingController();
+  final TextEditingController _entryPriceController = TextEditingController();
+  FocusNode _durationFocusNode = FocusNode();
+  FocusNode _entryPriceFocusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
     _searchController.addListener(_onSearchChanged);
-    _listenForConfirmation(); // Listen for confirmation
-    _listenForCountdown(); // Listen for countdown
-
-
+    _listenForConfirmation();
+    _listenForCountdown();
+    _durationFocusNode.addListener(_onDurationFocusChange);
+    _entryPriceFocusNode.addListener(_onEntryPriceFocusChange);
   }
 
   @override
@@ -42,62 +44,94 @@ class _SearchPageState extends State<SearchPage> {
     _confirmationListener?.cancel();
     _countdownListener?.cancel();
     _searchFocusNode.dispose();
+    _durationController.dispose();
+    _entryPriceController.dispose();
+    _durationFocusNode.dispose();
+    _entryPriceFocusNode.dispose();
     super.dispose();
   }
-  
+
+  void _onDurationFocusChange() {
+    if (!_durationFocusNode.hasFocus) {
+      _updateDuration();
+    }
+  }
+
+  void _onEntryPriceFocusChange() {
+    if (!_entryPriceFocusNode.hasFocus) {
+      _updateEntryPrice();
+    }
+  }
+
+  void _updateDuration() {
+    if (_foundUser != null) {
+      setState(() {
+        _foundUser!['totalGameTime'] = _durationController.text;
+      });
+    }
+  }
+
+  void _updateEntryPrice() {
+    if (_foundUser != null) {
+      setState(() {
+        _foundUser!['entryPrice'] = _entryPriceController.text;
+      });
+    }
+  }
+
   void _listenForConfirmation() {
     _confirmationListener = FirebaseFirestore.instance
         .collection('matchRequests')
-        .where('senderId', isEqualTo: userId) // Listen for requests where the current user is the sender
+        .where('senderId', isEqualTo: userId)
         .snapshots()
         .listen((snapshot) async {
       if (snapshot.docs.isNotEmpty) {
         final request = snapshot.docs.first;
         final requestId = request.id;
-
-        // Check if the confirmation dialog should be shown
         final showConfirmation = request['showConfirmation'] ?? false;
 
         if (showConfirmation && !_isDialogShowing) {
           _isDialogShowing = true;
 
-          // Show the confirmation dialog
           final confirmed = await showDialog<bool>(
             context: context,
             builder: (context) {
               return AlertDialog(
-                title: Text('Confirm Match', style: TextStyle(color: Colors.blue)),
-                content: Text('The receiver has accepted your match request. Do you want to proceed?'),
+                title: Text('Match Confirmed', 
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                content: Text('Your opponent has accepted the match! Ready to play?'),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(context, false),
-                    child: Text('Cancel', style: TextStyle(color: Colors.red)),
+                    child: Text('Cancel'),
                   ),
                   TextButton(
                     onPressed: () => Navigator.pop(context, true),
-                    child: Text('Confirm', style: TextStyle(color: Colors.blue)),
+                    child: Text('Play', style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 ],
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               );
             },
           );
 
-          // Reset the `showConfirmation` field to prevent re-triggering
           await FirebaseFirestore.instance
               .collection('matchRequests')
               .doc(requestId)
               .update({'showConfirmation': false});
 
           _isDialogShowing = false;
+          _searchController.clear();
+          _searchFocusNode.unfocus();
 
           if (confirmed == true) {
-            // Update Firestore to indicate the sender has confirmed
             await FirebaseFirestore.instance
                 .collection('matchRequests')
                 .doc(requestId)
                 .update({'senderConfirmed': true});
           } else {
-            // Cancel the match request if the sender declines
             await FirebaseFirestore.instance
                 .collection('matchRequests')
                 .doc(requestId)
@@ -108,41 +142,38 @@ class _SearchPageState extends State<SearchPage> {
     });
   }
 
-void _listenForCountdown() {
+  void _listenForCountdown() {
     _countdownListener = FirebaseFirestore.instance
         .collection('matchRequests')
-        .where('senderId', isEqualTo: userId) // Listen for requests where the current user is the sender
+        .where('senderId', isEqualTo: userId)
         .snapshots()
         .listen((snapshot) async {
       if (snapshot.docs.isNotEmpty) {
         final request = snapshot.docs.first;
         final requestId = request.id;
-
-        // Check if both users have confirmed
         final senderConfirmed = request['senderConfirmed'] ?? false;
         final receiverConfirmed = request['receiverConfirmed'] ?? false;
-        final entryPrice = request['entryPrice']??'0.0';
-        final duration = int.parse(request['duration']);
-
-        final prizePool = double.parse(entryPrice) > 0.0?((double.parse(request['entryPrice'])*2)-(((double.parse(request['entryPrice']) * 2)/100)*2)).toString():"0.0";
+        final entryPrice = request['entryPrice']?.toString() ?? '0.0';
+        final duration = int.tryParse(request['duration']?.toString() ?? '0') ?? 0;
+        final prizePool = double.parse(entryPrice) > 0.0
+          ? ((double.parse(entryPrice)*2)-(((double.parse(entryPrice) * 2)/100)*2)).toStringAsFixed(2)
+          : "0.0";
 
         if (senderConfirmed && receiverConfirmed && !_isDialogShowing) {
           _isDialogShowing = true;
 
-          // Show the countdown dialog
           showModalBottomSheet(
             context: context,
             isScrollControlled: true,
             builder: (context) => CountdownBottomDialogForGame(
               time: duration,
-              entryPrice: request['entryPrice'] ?? '0.0',
-              prizePool:prizePool,
+              entryPrice: entryPrice,
+              prizePool: prizePool,
               partnerId: request['receiverId'],
               boardSize: request['boardSize'] ?? '9x9',
             ),
           );
 
-          // Reset the confirmation fields to prevent re-triggering
           await FirebaseFirestore.instance
               .collection('matchRequests')
               .doc(requestId)
@@ -156,8 +187,6 @@ void _listenForCountdown() {
       }
     });
   }
-
-
 
   void _onSearchChanged() {
     if (_debounce?.isActive ?? false) _debounce?.cancel();
@@ -185,45 +214,77 @@ void _listenForCountdown() {
     setState(() {
       _isSearching = false;
       _foundUser = userProfile;
+      if (_foundUser != null) {
+        _durationController.text = _foundUser!['totalGameTime']?.toString() ?? '12';
+        _entryPriceController.text = _foundUser!['entryPrice'] is double 
+            ? (_foundUser!['entryPrice'] as double).toStringAsFixed(2)
+            : (double.tryParse(_foundUser!['entryPrice']?.toString() ?? '0.0') ?? 0.0).toStringAsFixed(2);
+      }
     });
 
     if (_foundUser == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('User not found')),
+        SnackBar(
+          content: Text('User not found'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
       );
     }
   }
 
   Future<void> _sendMatchRequest(String entryPrice, String duration) async {
+    FocusScope.of(context).unfocus();
     if (_foundUser == null) return;
-    if(double.parse(entryPrice) > double.parse(info!.userProfile[userId]!['fund'])){
+    
+    final currentFund = double.tryParse(info!.userProfile[userId]!['fund']?.toString() ?? '0.0') ?? 0.0;
+    final requestAmount = double.tryParse(entryPrice) ?? 0.0;
+    
+    if(requestAmount > currentFund){
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Your fund is low.')),
+        SnackBar(
+          content: Text('Insufficient funds'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
       );
-    } else{
-
-
+    } else {
       final success = await info!.sendMatchRequest(
         userId,
         _foundUser!['id'],
         duration,
         entryPrice,
-        _selectedBoardSize, // Pass the selected board size
+        _selectedBoardSize,
       );
       if (success) {
-        // Clear the search box and remove focus
         _searchController.clear();
         _searchFocusNode.unfocus();
         
         setState(() {
-          _foundUser = null;  // Clear the found user
+          _foundUser = null;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Match request sent!')),
+          SnackBar(
+            content: Text('Match request sent!'),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to send match request.')),
+          SnackBar(
+            content: Text('Failed to send match request'),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
         );
       }
     }
@@ -232,11 +293,11 @@ void _listenForCountdown() {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-              backgroundColor: Colors.white,
-              elevation: 0,
-              title: Row(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -260,47 +321,55 @@ void _listenForCountdown() {
       ),
       body: Padding(
         padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom, // Adjust for keyboard
+          bottom: MediaQuery.of(context).viewInsets.bottom,
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20.0),
           child: Column(
             children: [
               // Search Bar
-              AnimatedContainer(
-                duration: Duration(milliseconds: 300),
+              Container(
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(30),
-                  color: Colors.grey[200],
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.grey.withOpacity(0.5),
-                      spreadRadius: 1,
-                      blurRadius: 5,
-                      offset: Offset(0, 3),
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: Offset(0, 4),
                     ),
                   ],
                 ),
                 child: TextField(
                   controller: _searchController,
-                  focusNode: _searchFocusNode,  // Add this
+                  focusNode: _searchFocusNode,
                   decoration: InputDecoration(
-                    hintText: 'Enter User ID',
+                    hintText: 'Search player by ID...',
+                    hintStyle: TextStyle(color: Colors.grey[500]),
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                    suffixIcon: IconButton(
-                      icon: Icon(Icons.search, color: Colors.blue),
-                      onPressed: _searchUser,
-                    ),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    prefixIcon: Icon(Icons.search, color: Colors.blue[700]),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: Icon(Icons.clear, color: Colors.grey[500]),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {
+                                _foundUser = null;
+                              });
+                            },
+                          )
+                        : null,
                   ),
                 ),
               ),
-              SizedBox(height: 20),
+              SizedBox(height: 24),
+              
               // Loading or Results
               if (_isSearching)
                 _buildShimmerLoading()
               else if (_foundUser != null)
-                Expanded(child: _buildUserProfileCard()) // Use Expanded to avoid overflow
+                _buildUserProfileCard()
               else
                 _buildEmptyState(),
             ],
@@ -312,9 +381,20 @@ void _listenForCountdown() {
 
   Widget _buildShimmerLoading() {
     return Container(
-      margin: EdgeInsets.symmetric(vertical: 20),
+      padding: EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
       child: Shimmer.fromColors(
-        baseColor: Colors.grey[300]!,
+        baseColor: Colors.grey[200]!,
         highlightColor: Colors.grey[100]!,
         child: Column(
           children: [
@@ -326,7 +406,7 @@ void _listenForCountdown() {
                 color: Colors.white,
               ),
             ),
-            SizedBox(height: 10),
+            SizedBox(height: 16),
             Container(
               width: 200,
               height: 20,
@@ -335,7 +415,7 @@ void _listenForCountdown() {
             SizedBox(height: 10),
             Container(
               width: 150,
-              height: 20,
+              height: 16,
               color: Colors.white,
             ),
           ],
@@ -345,189 +425,174 @@ void _listenForCountdown() {
   }
 
   Widget _buildUserProfileCard() {
-    // Set default values if not provided
-    final totalGameTime = _foundUser!['totalGameTime'] ?? '12';
-    final entryPrice = _foundUser!['entryPrice']?.toStringAsFixed(2) ?? '0.00';
-
-    return Card(
-      elevation: 5,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.blue, Colors.purple],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: Offset(0, 4),
           ),
-          borderRadius: BorderRadius.circular(15),
-        ),
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+        ],
+      ),
+      child: Column(
+        children: [
+          // Profile Header
+          Column(
             children: [
-              CircleAvatar(
-                radius: 40,
-                backgroundColor: Colors.white,
-                child: Icon(Icons.person, size: 40, color: Colors.blue),
-              ),
-              SizedBox(height: 10),
-              Text(
-                'User ID: ${_foundUser!['id']}',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-              ),
-              SizedBox(height: 5),
-              Text(
-                'Username: ${_foundUser!['username']}',
-                style: TextStyle(fontSize: 14, color: Colors.white70),
-              ),
-              SizedBox(height: 20),
-              // Editable Total Game Time
-              _buildEditableFieldForMinutes(
-                label: 'Total Game Time',
-                value: totalGameTime,
-                onChanged: (value) {
-                  setState(() {
-                    _foundUser!['totalGameTime'] = value;
-                  });
-                },
-                icon: Icons.timer,
-              ),
-              SizedBox(height: 20),
-              // Editable Entry Price
-              _buildEditableField(
-                label: 'Entry Price',
-                value: entryPrice,
-                onChanged: (value) {
-                  setState(() {
-                    _foundUser!['entryPrice'] = double.tryParse(value) ?? 0.0;
-                  });
-                },
-                icon: Icons.attach_money,
-              ),
-              SizedBox(height: 20),
-              // Board Size Selection
-              _buildBoardSizeSelector(),
-              SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  _sendMatchRequest(entryPrice.toString(), totalGameTime.toString());
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.blue,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.blue[100],
                 ),
-                child: Text('Request to Play Match'),
+                child: Icon(Icons.person, size: 50, color: Colors.blue[700]),
+              ),
+              SizedBox(height: 16),
+              Text(
+                _foundUser!['username'] ?? 'Unknown',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
+                ),
+              ),
+              SizedBox(height: 4),
+              Text(
+                'ID: ${_foundUser!['id']}',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ),
               ),
             ],
           ),
-        ),
+          
+          SizedBox(height: 24),
+          
+          // Match Settings
+          Column(
+            children: [
+              _buildEditableField(
+                label: "Game Duration",
+                controller: _durationController,
+                focusNode: _durationFocusNode,
+                suffixText: "minutes",
+                keyboardType: TextInputType.number,
+              ),
+              
+              Divider(height: 24, color: Colors.grey[200]),
+              
+              _buildEditableField(
+                label: "Entry Fee",
+                controller: _entryPriceController,
+                focusNode: _entryPriceFocusNode,
+                prefixText: "₹",
+                keyboardType: TextInputType.numberWithOptions(decimal: true),
+              ),
+              
+              Divider(height: 24, color: Colors.grey[200]),
+              
+              _buildBoardSizeSelector(),
+            ],
+          ),
+          
+          SizedBox(height: 24),
+          
+          // Action Button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                _sendMatchRequest(_entryPriceController.text, _durationController.text);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue[700],
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
+              child: Text(
+                'SEND MATCH REQUEST',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  // Helper method to create an editable field with an icon
   Widget _buildEditableField({
     required String label,
-    required String value,
-    required Function(String) onChanged,
-    required IconData icon,
+    required TextEditingController controller,
+    required FocusNode focusNode,
+    String? prefixText,
+    String? suffixText,
+    required TextInputType keyboardType,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Icon(icon, size: 20, color: Colors.white70),
-            SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(fontSize: 14, color: Colors.white70),
-            ),
-          ],
-        ),
-        SizedBox(height: 5),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(8),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey[600],
           ),
-          child: TextFormField(
-            initialValue: value,
-            style: TextStyle(color: Colors.white),
-            decoration: InputDecoration(
-              border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+        ),
+        SizedBox(height: 8),
+        TextField(
+          controller: controller,
+          focusNode: focusNode,
+          keyboardType: keyboardType,
+          decoration: InputDecoration(
+            prefixText: prefixText,
+            suffixText: suffixText,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[300]!),
             ),
-            onChanged: onChanged,
+            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           ),
         ),
       ],
     );
   }
 
-  // Helper method to create an editable field with an icon
-  Widget _buildEditableFieldForMinutes({
-    required String label,
-    required String value,
-    required Function(String) onChanged,
-    required IconData icon,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(icon, size: 20, color: Colors.white70),
-            SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(fontSize: 14, color: Colors.white70),
-            ),
-          ],
-        ),
-        SizedBox(height: 5),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: TextFormField(
-            initialValue: value,
-            keyboardType: TextInputType.number,
-            style: TextStyle(color: Colors.white),
-            decoration: InputDecoration(
-              border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-            ),
-            onChanged: onChanged,
-          ),
-        ),
-      ],
-    );
-  }
-
-  // Helper method to create a board size selector
   Widget _buildBoardSizeSelector() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Select Board Size',
-          style: TextStyle(fontSize: 14, color: Colors.white70),
+          'BOARD SIZE',
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[500],
+            fontWeight: FontWeight.bold,
+          ),
         ),
-        SizedBox(height: 10),
+        SizedBox(height: 8),
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            _buildBoardSizeOption('9x9'),
-            _buildBoardSizeOption('13x13'),
+            Expanded(
+              child: _buildBoardSizeOption('9x9'),
+            ),
+            SizedBox(width: 16),
+            Expanded(
+              child: _buildBoardSizeOption('13x13'),
+            ),
           ],
         ),
       ],
@@ -541,23 +606,23 @@ void _listenForCountdown() {
           _selectedBoardSize = size;
         });
       },
-      child: AnimatedContainer(
-        duration: Duration(milliseconds: 300),
-        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      child: Container(
+        height: 50,
         decoration: BoxDecoration(
-          color: _selectedBoardSize == size ? Colors.white : Colors.white.withOpacity(0.2),
+          color: _selectedBoardSize == size ? Colors.blue[700]! : Colors.white,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: _selectedBoardSize == size ? Colors.blue : Colors.transparent,
-            width: 2,
+            color: _selectedBoardSize == size ? Colors.blue[700]! : Colors.grey[300]!,
           ),
         ),
-        child: Text(
-          size,
-          style: TextStyle(
-            fontSize: 16,
-            color: _selectedBoardSize == size ? Colors.blue : Colors.white70,
-            fontWeight: _selectedBoardSize == size ? FontWeight.bold : FontWeight.normal,
+        child: Center(
+          child: Text(
+            size,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: _selectedBoardSize == size ? Colors.white : Colors.grey[800],
+            ),
           ),
         ),
       ),
@@ -565,21 +630,30 @@ void _listenForCountdown() {
   }
 
   Widget _buildEmptyState() {
-    return Expanded(
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.search_off, size: 60, color: Colors.grey),
-            SizedBox(height: 10),
-            Text(
-              'No user found. Try searching again!',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 40),
+      child: Column(
+        children: [
+          Icon(Icons.search, size: 60, color: Colors.grey[300]),
+          SizedBox(height: 16),
+          Text(
+            'Find Players',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[600],
             ),
-          ],
-        ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Search for players by their ID to start a match',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[500],
+            ),
+          ),
+        ],
       ),
     );
   }
 }
-
