@@ -33,7 +33,10 @@ class _GoBoardState extends State<GoBoard> {
   int _timeLeft = 180; // 3 minutes in seconds
   late Timer _timer;
   PlaceStoneSound placeStoneSound = PlaceStoneSound();
-  
+  bool _blackPassed = false;
+  bool _whitePassed = false;
+  bool _isTablet = false;
+
   @override
   void initState() {
     super.initState();
@@ -45,6 +48,8 @@ class _GoBoardState extends State<GoBoard> {
     // Delay the orientation logic until after the first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final double shortestSide = MediaQuery.of(context).size.shortestSide;
+      _isTablet = shortestSide >= 600;
+
       if (shortestSide < 600) {
         // Phone: Lock to portrait mode
         SystemChrome.setPreferredOrientations([
@@ -60,6 +65,149 @@ class _GoBoardState extends State<GoBoard> {
       }
     });
   }
+
+    void _passTurn() {
+    setState(() {
+      if (currentPlayer == Stone.black) {
+        _blackPassed = true;
+      } else {
+        _whitePassed = true;
+      }
+
+      if (_blackPassed && _whitePassed) {
+        _showEndGameConfirmation();
+        return;
+      }
+
+      currentPlayer = currentPlayer == Stone.black ? Stone.white : Stone.black;
+    });
+  }
+
+  void _showEndGameConfirmation() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(25),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 10,
+                  spreadRadius: 3,
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.help_outline,
+                  size: 60,
+                  color: Colors.blue,
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  "Confirm End Game",
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue,
+                  ),
+                ),
+                const SizedBox(height: 15),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 10),
+                  child: Text(
+                    "Are you sure you want to end the game? This will calculate the final scores and declare a winner.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 25),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 12),
+                        backgroundColor: Colors.grey[200],
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: const Text(
+                        "Cancel",
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        _endGame();
+                      },
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 12),
+                        backgroundColor: Colors.blue,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: const Text(
+                        "End Game",
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPassButton(Stone player) {
+  bool isActive = currentPlayer == player;
+  // Check if the OTHER player has passed
+  bool otherPlayerPassed = (player == Stone.black && _whitePassed) || 
+                         (player == Stone.white && _blackPassed);
+  
+  return ElevatedButton(
+    style: ElevatedButton.styleFrom(
+      backgroundColor: otherPlayerPassed ? Colors.red[400] : Colors.orange[400],
+      foregroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+    ),
+    onPressed: isActive ? _passTurn : null,
+    child: Text(
+      otherPlayerPassed ? 'End Game' : 'Pass',
+      style: TextStyle(fontSize: 16),
+    ),
+  );
+}
 
   @override
   void dispose() {
@@ -188,6 +336,8 @@ class _GoBoardState extends State<GoBoard> {
         }
 
         currentPlayer = currentPlayer == Stone.black ? Stone.white : Stone.black;
+        _blackPassed = false;
+        _whitePassed = false;
       });
       // Play the sound when a stone is placed
       await placeStoneSound.playStoneSound();
@@ -219,8 +369,11 @@ class _GoBoardState extends State<GoBoard> {
 
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext context) {
-        return Dialog(
+        return WillPopScope(
+        onWillPop: () async => false, // Prevent dismissing by back button
+        child: Dialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
@@ -280,6 +433,7 @@ class _GoBoardState extends State<GoBoard> {
               ],
             ),
           ),
+        )
         );
       },
     );
@@ -391,11 +545,22 @@ class _GoBoardState extends State<GoBoard> {
                         "Score: $whiteScore",
                         style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                       ),
+
+                      if (_isTablet)
+                          Container(
+                            height: 45,
+                            child: _buildPassButton(Stone.white)
+                          ),
                     ],
                   ),
                 ),
               ),
 
+              if(!_isTablet)
+                 SizedBox(
+                    height: 45, // Same height as your pass button
+                    child: currentPlayer==Stone.white ? _buildPassButton(Stone.white) : null,
+                  ),
               const SizedBox(height: 10), // Reduced spacing
 
               // Board
@@ -463,7 +628,11 @@ class _GoBoardState extends State<GoBoard> {
               ),
 
               const SizedBox(height: 10), // Reduced spacing
-
+              if(!_isTablet)
+                Container(
+                      height: 45, // Same height as your pass button
+                      child: currentPlayer==Stone.black ? _buildPassButton(Stone.black) : null,
+                    ),
               // Black Player Card (Below the Board)
               Card(
                 margin: const EdgeInsets.all(10),
@@ -489,6 +658,11 @@ class _GoBoardState extends State<GoBoard> {
                         "Score: $blackScore",
                         style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                       ),
+                      if (_isTablet)
+                          Container(
+                            height: 45,
+                            child: _buildPassButton(Stone.black)
+                          ),
                     ],
                   ),
                 ),

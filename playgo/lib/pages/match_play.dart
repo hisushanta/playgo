@@ -57,6 +57,13 @@ class _GoMultiplayerBoardState extends State<GoBoardMatch> with WidgetsBindingOb
   String? emojiProfileCardId; // Track which profile card the emoji belongs to
   Map<String, String> playerEmojis = {}; // Track emojis for both players
   PlaceStoneSound placeStoneSound = PlaceStoneSound();
+  bool get isTablet {
+    final data = MediaQueryData.fromView(WidgetsBinding.instance.platformDispatcher.views.first);
+    return data.size.shortestSide >= 600;
+  }
+  bool _blackPassed = false;
+  bool _whitePassed = false;
+
 
   @override
   void initState() {
@@ -287,6 +294,9 @@ Widget _buildPlayerInfo({
 
   void _initializeBoard() {
     board = List.generate(widget.size, (_) => List.filled(widget.size, Stone.none));
+    _blackPassed = false;  // Add this line
+    _whitePassed = false;  // Add this line
+
   }
 
   void _initializePlayers() async {
@@ -331,6 +341,43 @@ void _listenToGameUpdates() {
           return; // Skip other updates if game ended by forfeit
         }
 
+        // Inside _listenToGameUpdates(), after the forfeit check:
+        if (data['status'] == 'ended' && data['endReason'] == 'normal' && !isDialogShowing) {
+            String winner = data['winner'] ?? 'Both';
+            _showWinnerDialog(winner);
+            
+            // Clean up after both players have seen the result
+            if (data['endedBy'] == widget.playerId) {
+              await Future.delayed(Duration(seconds: 5));
+              await FirebaseFirestore.instance.collection('games').doc(widget.gameId).update({
+                'activePlayers': [],
+              });
+              await FirebaseFirestore.instance.collection('games').doc(widget.gameId).delete();
+            }
+            return;
+          }
+
+        // Update pass states from Firestore - ADD AFTER FORFEIT CHECK
+        _blackPassed = data['blackPassed'] ?? false;
+        _whitePassed = data['whitePassed'] ?? false;
+
+        // Check if opponent passed - ADD AFTER FORFEIT CHECK
+        // Inside _listenToGameUpdates
+          String lastPasserId = data['lastPasserId'] ?? '';
+          if (lastPasserId.isNotEmpty && lastPasserId != widget.playerId) {
+            // Clear the passer ID
+            await FirebaseFirestore.instance.collection('games').doc(widget.gameId).update({
+              'lastPasserId': '',
+            });
+
+            // Show beautiful notification for opponent
+            _showPassNotification(
+              message: 'Opponent passed their turn',
+              icon: Icons.notifications_active,
+              color: Colors.blue[400]!,
+            );
+          }
+        
         // Check if the board has changed
         bool boardChanged = false;
         final Map<String, dynamic> firestoreBoard = data['board'] ?? {};
@@ -588,6 +635,8 @@ void _listenToGameUpdates() {
   }
 
    void _showWinnerDialog(String winner) {
+    _turnTimer!.cancel();
+    _gameTimer!.cancel();
     // If dialog is already showing, don't show another one
     if (isDialogShowing) return;
     isDialogShowing = true;
@@ -893,14 +942,20 @@ void _listenToGameUpdates() {
           }
         }
 
+        // Reset pass states when placing a stone - ADD BEFORE gameDoc.update()
+        _blackPassed = false;
+        _whitePassed = false;
 
         // Switch turns
         String nextTurn = currentTurn == 'black' ? 'white' : 'black';
+        // Then modify the existing update call to include:
         await gameDoc.update({
           'board': firestoreBoard,
           'currentTurn': nextTurn,
           'blackTimeLeft': blackTimeLeft,
           'whiteTimeLeft': whiteTimeLeft,
+          'blackPassed': false,    // ADD THIS LINE
+          'whitePassed': false,    // ADD THIS LINE
         });
       }
     }
@@ -1105,8 +1160,259 @@ void _listenToGameUpdates() {
     }
     return false;
   }
+Widget _buildPassButton() {
+  return Padding(
+    padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+    child: ElevatedButton.icon(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: _blackPassed || _whitePassed 
+            ? Colors.red[400] 
+            : Colors.orange[400],
+        foregroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      ),
+      icon: Icon(
+        _blackPassed || _whitePassed 
+            ? Icons.warning 
+            : Icons.skip_next,
+        size: 24),
+      label: Text(
+        _blackPassed || _whitePassed 
+            ? 'End Game' 
+            : 'Pass',
+        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+      ),
+      onPressed: _passTurn,
+    ),
+  );
+}
+Future<void> _endGameByPass() async {
+  _gameTimer?.cancel();
+  _turnTimer?.cancel();
 
+  // Determine winner based on existing scores
+  String winner;
+  if (blackScore == whiteScore) {
+    winner = "Both";
+    await info!.updateUserFund(userId, double.parse(widget.entryPrice));
+  } else {
+    winner = blackScore > whiteScore ? 'black' : 'white';
+    String winnerId = winner == 'black' 
+        ? (player1Stone == 'black' ? player1Id! : player2Id!)
+        : (player1Stone == 'white' ? player1Id! : player2Id!);
+    
+    if (winnerId == userId) {
+      await info!.updateUserFund(userId, double.parse(widget.prizePool));
+      await info!.updateUserWinning(userId, double.parse(widget.prizePool));
+    }
+  }
 
+  // Update game state - this will trigger the dialog for both players
+  await FirebaseFirestore.instance.collection('games').doc(widget.gameId).update({
+    'status': 'ended',
+    'winner': winner,
+    'endReason': 'normal',
+    'endedBy': widget.playerId,  // Track who ended the game
+  });
+
+  // Don't show dialog here - let _listenToGameUpdates handle it
+  // Don't delete game yet - let both players see the result first
+
+  info!.updateGameStatus("DeActive", player1Id!, "0.0");
+  info!.updateGameStatus("DeActive", player2Id!, "0.0");
+}
+
+Future<bool> _showEndGameConfirmation() async {
+  return await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (ctx) => Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Container(
+        padding: EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF6A11CB),
+              Color(0xFF2575FC),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 10,
+              spreadRadius: 2,
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.emoji_events,
+              size: 48,
+              color: Colors.amber,
+            ),
+            SizedBox(height: 20),
+            Text(
+              "End the Game?",
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            SizedBox(height: 12),
+            Text(
+              "Passing now will end the game.\nAre you sure you want to continue?",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.white.withOpacity(0.9),
+              ),
+            ),
+            SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.red,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  ),
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: Text(
+                    "Cancel",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    elevation: 5,
+                  ),
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: Text(
+                    "End Game",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ),
+  ) ?? false;
+}
+Future<void> _passTurn() async {
+  // Show confirmation if this would end the game
+  if ((currentTurn == 'black' && _whitePassed) ||
+      (currentTurn == 'white' && _blackPassed)) {
+    bool confirm = await _showEndGameConfirmation();
+    
+    if (!confirm) return;
+  }
+
+  final gameDoc = FirebaseFirestore.instance.collection('games').doc(widget.gameId);
+  
+  // Update local pass state
+  setState(() {
+    if (currentTurn == 'black') {
+      _blackPassed = true;
+    } else {
+      _whitePassed = true;
+    }
+  });
+
+  // Check for two consecutive passes to end the game
+  if (_blackPassed && _whitePassed) {
+    await _endGameByPass();
+    return;
+  }
+
+  // For single pass
+  String nextTurn = currentTurn == 'black' ? 'white' : 'black';
+  
+  // Reset timers
+  int newBlackTime = currentTurn == 'black' ? 30 : blackTimeLeft;
+  int newWhiteTime = currentTurn == 'white' ? 30 : whiteTimeLeft;
+
+  // Show notification
+  _showPassNotification(
+    message: 'You passed your turn',
+    icon: Icons.check_circle_outline,
+    color: Colors.green[400]!,
+  );
+
+  // Update Firestore
+  await gameDoc.update({
+    'currentTurn': nextTurn,
+    'blackTimeLeft': newBlackTime,
+    'whiteTimeLeft': newWhiteTime,
+    'lastPasserId': widget.playerId,
+    'blackPassed': _blackPassed,
+    'whitePassed': _whitePassed,
+  });
+}
+
+void _showPassNotification({required String message, required IconData icon, required Color color}) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Container(
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: Colors.white, size: 28),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      duration: Duration(seconds: 3),
+      behavior: SnackBarBehavior.floating,
+      margin: EdgeInsets.all(20),
+      elevation: 0,
+      backgroundColor: Colors.transparent,
+    ),
+  );
+}
  @override
 Widget build(BuildContext context) {
   final bool isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
@@ -1199,6 +1505,12 @@ Widget build(BuildContext context) {
         ),
       ),
       actions: [
+        if (isTablet && isPlayerTurn) // Show pass button in app bar for tablets
+          Container(
+          margin: EdgeInsets.only(right: 12),
+          child: _buildPassButton()
+        ),
+
         Container(
           margin: EdgeInsets.only(right: 16),
           padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -1223,6 +1535,7 @@ Widget build(BuildContext context) {
         ),
       ],
     ),
+    
     body: LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
         double boardSize = isLandscape
@@ -1235,11 +1548,17 @@ Widget build(BuildContext context) {
         boardSize -= padding * 2;
         double cellSize = boardSize / (widget.size - 1);
         double stoneSize = cellSize * 0.8;
+        // Determine pass button visibility
+        bool showPlayer1Pass = widget.playerId == player1Id && isPlayerTurn;
+        bool showPlayer2Pass = widget.playerId == player2Id && isPlayerTurn;
 
         return Column(
           children: [
             SizedBox(height: 8),
             if (player1Id != null) // Add null check
+              Column(
+                children: [
+
               _buildPlayerInfo(
                 name: userName,
                 score: blackScore,
@@ -1249,6 +1568,14 @@ Widget build(BuildContext context) {
                 playerId: player1Id!, // Pass player ID
                 isCurrentUser: widget.playerId == player1Id, // Check if this is the current user's card
               ),
+              // Fixed height container for pass button
+              if(!isTablet)
+                  Container(
+                    height: 72, // Same height as your pass button
+                    child: showPlayer1Pass ? _buildPassButton() : null,
+                  ),
+
+                    ],),
             SizedBox(height: 4),
             Expanded(
               child: Stack(
@@ -1374,21 +1701,33 @@ Widget build(BuildContext context) {
             ),
             SizedBox(height: 4),
             if (player2Id != null) // Add null check
-              _buildPlayerInfo(
-                name: partnerName,
-                score: whiteScore,
-                isBlack: player2Stone == 'black',
-                timeLeft: player2Stone == 'black' ? blackTimeLeft : whiteTimeLeft,
-                isCurrentTurn: currentTurn == (player2Stone == 'black' ? 'black' : 'white'),
-                playerId: player2Id!, // Pass player ID
-                isCurrentUser: widget.playerId == player2Id, // Check if this is the current user's card
-              ),
+              Column(
+              children: [
+                 // Fixed height container for pass button
+                 if (!isTablet)
+                    Container(
+                      height: 72, // Same height as your pass button
+                      child: showPlayer2Pass ? _buildPassButton() : null,
+                    ),
+                _buildPlayerInfo(
+                  name: partnerName,
+                  score: whiteScore,
+                  isBlack: player2Stone == 'black',
+                  timeLeft: player2Stone == 'black' ? blackTimeLeft : whiteTimeLeft,
+                  isCurrentTurn: currentTurn == (player2Stone == 'black' ? 'black' : 'white'),
+                  playerId: player2Id!, // Pass player ID
+                  isCurrentUser: widget.playerId == player2Id, // Check if this is the current user's card
+                ),
+                
+                  ]),
             SizedBox(height: 8),
           ],
         );
       },
     ),
   );
+
+  
 }
 
   
