@@ -133,15 +133,19 @@ void _listenForCountdown() {
           // Show the countdown dialog
           showModalBottomSheet(
             context: context,
+            isDismissible: false,
+            enableDrag: false,
             isScrollControlled: true,
-            builder: (context) => CountdownBottomDialogForGame(
+            builder: (context) => PopScope(
+              canPop: false,
+              child:CountdownBottomDialogForGame(
               time: duration,
               entryPrice: request['entryPrice'] ?? '0.0',
               prizePool:prizePool,
               partnerId: request['receiverId'],
               boardSize: request['boardSize'] ?? '9x9',
             ),
-          );
+          ));
 
           // Reset the confirmation fields to prevent re-triggering
           await FirebaseFirestore.instance

@@ -83,8 +83,12 @@ class _MatchRequestPageState extends State<MatchRequestPage> {
             if (mounted) {
               showModalBottomSheet(
                 context: context,
+                isDismissible: false,
+                enableDrag: false,
                 isScrollControlled: true,
-                builder: (context) => CountdownBottomDialogForGame(
+                builder: (context) => PopScope(
+                  canPop: false,
+                  child: CountdownBottomDialogForGame(
                   time: duration,
                   entryPrice: entryPrice,
                   prizePool: prizePool,
@@ -93,6 +97,7 @@ class _MatchRequestPageState extends State<MatchRequestPage> {
                       : snapshot['senderId'],
                   boardSize: boardSize,
                 ),
+              )
               );
               _cancelMatchRequest(requestId);
 
