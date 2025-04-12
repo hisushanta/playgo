@@ -594,10 +594,6 @@ class _SearchPageState extends State<SearchPage> {
             Expanded(
               child: _buildBoardSizeOption('9x9'),
             ),
-            SizedBox(width: 16),
-            Expanded(
-              child: _buildBoardSizeOption('13x13'),
-            ),
           ],
         ),
       ],
