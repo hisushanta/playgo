@@ -164,14 +164,19 @@ class _SearchPageState extends State<SearchPage> {
 
           showModalBottomSheet(
             context: context,
+            isDismissible: false,
+            enableDrag: false,
             isScrollControlled: true,
-            builder: (context) => CountdownBottomDialogForGame(
+            builder: (context) => PopScope(
+            canPop: false,
+            child: CountdownBottomDialogForGame(
               time: duration,
               entryPrice: entryPrice,
               prizePool: prizePool,
               partnerId: request['receiverId'],
               boardSize: request['boardSize'] ?? '9x9',
             ),
+          ),
           );
 
           await FirebaseFirestore.instance
