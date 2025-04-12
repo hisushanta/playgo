@@ -238,170 +238,226 @@ void _listenForCountdown() {
   });
 }
   void _showAIGameDialog(BuildContext context) {
-      int duration = 8; // Default duration
-  int boardSize = 9; // Default board size
+   int duration = 15;
+  int boardSize = 9;
+  final List<int> presetDurations = [5, 10, 15, 20, 30, 45, 60];
+  final TextEditingController customDurationController = TextEditingController();
 
   showDialog(
     context: context,
     builder: (BuildContext context) {
       return StatefulBuilder(
         builder: (context, setState) {
-          return AlertDialog(
+          return Dialog(
             backgroundColor: Colors.white,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20.0),
+              borderRadius: BorderRadius.circular(24.0),
             ),
-            title: Center(
-              child: Text(
-                'Set Game Parameters',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-              ),
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Duration Dropdown
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.grey[400]!),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.timer, color: Colors.blue),
-                      SizedBox(width: 10),
-                      Expanded(
-                        child: DropdownButton<int>(
-                          value: duration,
-                          onChanged: (int? newValue) {
-                            setState(() {
-                              duration = newValue!;
-                            });
-                          },
-                          items: List.generate(93, (index) => index + 8) // Generates 8 to 100
-                              .map<DropdownMenuItem<int>>((int value) {
-                            return DropdownMenuItem<int>(
-                              value: value,
-                              child: Text(
-                                '$value minutes',
-                                style: TextStyle(fontSize: 16),
-                              ),
-                            );
-                          }).toList(),
-                          underline: SizedBox(), // Remove the default underline
-                          isExpanded: true,
-                          icon: Icon(Icons.arrow_drop_down, color: Colors.blue),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 20), // Spacing between dropdowns
-                // Board Size Dropdown
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.grey[400]!),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.grid_on, color: Colors.green),
-                      SizedBox(width: 10),
-                      Expanded(
-                        child: DropdownButton<int>(
-                          value: boardSize,
-                          onChanged: (int? newValue) {
-                            setState(() {
-                              boardSize = newValue!;
-                            });
-                          },
-                          items: [9, 13, 19]
-                              .map<DropdownMenuItem<int>>((int value) {
-                            return DropdownMenuItem<int>(
-                              value: value,
-                              child: Text(
-                                '$value x $value',
-                                style: TextStyle(fontSize: 16),
-                              ),
-                            );
-                          }).toList(),
-                          underline: SizedBox(), // Remove the default underline
-                          isExpanded: true,
-                          icon: Icon(Icons.arrow_drop_down, color: Colors.green),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            child: SingleChildScrollView(  // Added scroll for keyboard
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Cancel Button
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).pop(); // Close the dialog
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red[400],
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                  // Header
+                  const Icon(Icons.timer_outlined, size: 48, color: Colors.blueAccent),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Game Settings',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue[800],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Duration Picker
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8.0),
+                        child: Text(
+                          'Select Duration',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey[700],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ),
-                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        height: 100,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: presetDurations.length,
+                          itemBuilder: (context, index) {
+                            final minutes = presetDurations[index];
+                            final isSelected = duration == minutes && customDurationController.text.isEmpty;
+                            
+                            return GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  duration = minutes;
+                                  customDurationController.clear();
+                                });
+                              },
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                margin: const EdgeInsets.only(right: 12),
+                                width: 80,
+                                decoration: BoxDecoration(
+                                  color: isSelected ? Colors.blue[50] : Colors.grey[50],
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: isSelected ? Colors.blue : Colors.grey[300]!,
+                                    width: isSelected ? 2 : 1,
+                                  ),
+                                ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      '$minutes',
+                                      style: TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.blue[800],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      minutes < 60 ? 'min' : 'hour${minutes > 60 ? "s" : ""}',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Custom Duration Input
+                  TextField(
+                    controller: customDurationController,
+                    decoration: InputDecoration(
+                      labelText: 'Or enter custom minutes',
+                      prefixIcon: const Icon(Icons.edit),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey[400]!),
+                      ),
+                      suffixText: 'min',
+                    ),
+                    keyboardType: TextInputType.number,
+                    onChanged: (value) {
+                      setState(() {
+                        if (value.isNotEmpty) {
+                          duration = int.tryParse(value) ?? duration;
+                        }
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Board Size Display
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey[300]!),
                     ),
                     child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.cancel, color: Colors.white),
-                        SizedBox(width: 8),
-                        Text(
-                          'Cancel',
-                          style: TextStyle(fontSize: 16, color: Colors.white),
+                        Icon(Icons.grid_on, color: Colors.green[700]),
+                        const SizedBox(width: 12),
+                        Text.rich(
+                          TextSpan(
+                            children: [
+                              const TextSpan(
+                                text: 'Board Size: ',
+                                style: TextStyle(fontSize: 16),
+                              ),
+                              TextSpan(
+                                text: '9 × 9',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.green[800],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
                   ),
-                  // Start Button
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).pop(); // Close the dialog
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => GoAIBoard(size: boardSize, duration: duration),
+                  const SizedBox(height: 32),
+
+                  // Action Buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.red,
+                            side: BorderSide(color: Colors.red[400]!),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text('CANCEL'),
                         ),
-                      ).then((_) => _loadData());
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green[400],
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
                       ),
-                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.play_arrow, color: Colors.white),
-                        SizedBox(width: 8),
-                        Text(
-                          'Start',
-                          style: TextStyle(fontSize: 16, color: Colors.white),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => GoAIBoard(
+                                  size: boardSize,
+                                  duration: duration,
+                                ),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            'START GAME',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
+            ),
           );
         },
       );
@@ -409,171 +465,227 @@ void _listenForCountdown() {
   );
 }
 
-void _showTwoPlayerGameDialog(BuildContext context) {
-  int duration = 8; // Default duration
-  int boardSize = 9; // Default board size
+  void _showTwoPlayerGameDialog(BuildContext context) {
+  int duration = 15;
+  int boardSize = 9;
+  final List<int> presetDurations = [5, 10, 15, 20, 30, 45, 60];
+  final TextEditingController customDurationController = TextEditingController();
 
   showDialog(
     context: context,
     builder: (BuildContext context) {
       return StatefulBuilder(
         builder: (context, setState) {
-          return AlertDialog(
+          return Dialog(
             backgroundColor: Colors.white,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20.0),
+              borderRadius: BorderRadius.circular(24.0),
             ),
-            title: Center(
-              child: Text(
-                'Set Game Parameters',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-              ),
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Duration Dropdown
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.grey[400]!),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.timer, color: Colors.blue),
-                      SizedBox(width: 10),
-                      Expanded(
-                        child: DropdownButton<int>(
-                          value: duration,
-                          onChanged: (int? newValue) {
-                            setState(() {
-                              duration = newValue!;
-                            });
-                          },
-                          items: List.generate(93, (index) => index + 8) // Generates 8 to 100
-                              .map<DropdownMenuItem<int>>((int value) {
-                            return DropdownMenuItem<int>(
-                              value: value,
-                              child: Text(
-                                '$value minutes',
-                                style: TextStyle(fontSize: 16),
-                              ),
-                            );
-                          }).toList(),
-                          underline: SizedBox(), // Remove the default underline
-                          isExpanded: true,
-                          icon: Icon(Icons.arrow_drop_down, color: Colors.blue),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 20), // Spacing between dropdowns
-                // Board Size Dropdown
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.grey[400]!),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.grid_on, color: Colors.green),
-                      SizedBox(width: 10),
-                      Expanded(
-                        child: DropdownButton<int>(
-                          value: boardSize,
-                          onChanged: (int? newValue) {
-                            setState(() {
-                              boardSize = newValue!;
-                            });
-                          },
-                          items: [9, 13, 19]
-                              .map<DropdownMenuItem<int>>((int value) {
-                            return DropdownMenuItem<int>(
-                              value: value,
-                              child: Text(
-                                '$value x $value',
-                                style: TextStyle(fontSize: 16),
-                              ),
-                            );
-                          }).toList(),
-                          underline: SizedBox(), // Remove the default underline
-                          isExpanded: true,
-                          icon: Icon(Icons.arrow_drop_down, color: Colors.green),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            child: SingleChildScrollView(  // Added scroll for keyboard
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Cancel Button
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).pop(); // Close the dialog
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red[400],
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                  // Header
+                  const Icon(Icons.timer_outlined, size: 48, color: Colors.blueAccent),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Game Settings',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue[800],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Duration Picker
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8.0),
+                        child: Text(
+                          'Select Duration',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey[700],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ),
-                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        height: 100,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: presetDurations.length,
+                          itemBuilder: (context, index) {
+                            final minutes = presetDurations[index];
+                            final isSelected = duration == minutes && customDurationController.text.isEmpty;
+                            
+                            return GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  duration = minutes;
+                                  customDurationController.clear();
+                                });
+                              },
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                margin: const EdgeInsets.only(right: 12),
+                                width: 80,
+                                decoration: BoxDecoration(
+                                  color: isSelected ? Colors.blue[50] : Colors.grey[50],
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: isSelected ? Colors.blue : Colors.grey[300]!,
+                                    width: isSelected ? 2 : 1,
+                                  ),
+                                ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      '$minutes',
+                                      style: TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.blue[800],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      minutes < 60 ? 'min' : 'hour${minutes > 60 ? "s" : ""}',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Custom Duration Input
+                  TextField(
+                    controller: customDurationController,
+                    decoration: InputDecoration(
+                      labelText: 'Or enter custom minutes',
+                      prefixIcon: const Icon(Icons.edit),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey[400]!),
+                      ),
+                      suffixText: 'min',
+                    ),
+                    keyboardType: TextInputType.number,
+                    onChanged: (value) {
+                      setState(() {
+                        if (value.isNotEmpty) {
+                          duration = int.tryParse(value) ?? duration;
+                        }
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Board Size Display
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey[300]!),
                     ),
                     child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.cancel, color: Colors.white),
-                        SizedBox(width: 8),
-                        Text(
-                          'Cancel',
-                          style: TextStyle(fontSize: 16, color: Colors.white),
+                        Icon(Icons.grid_on, color: Colors.green[700]),
+                        const SizedBox(width: 12),
+                        Text.rich(
+                          TextSpan(
+                            children: [
+                              const TextSpan(
+                                text: 'Board Size: ',
+                                style: TextStyle(fontSize: 16),
+                              ),
+                              TextSpan(
+                                text: '9 × 9',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.green[800],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
                   ),
-                  // Start Button
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).pop(); // Close the dialog
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => GoBoard(size: boardSize, duration: duration),
+                  const SizedBox(height: 32),
+
+                  // Action Buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.red,
+                            side: BorderSide(color: Colors.red[400]!),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text('CANCEL'),
                         ),
-                      ).then((_) => _loadData());
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green[400],
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
                       ),
-                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.play_arrow, color: Colors.white),
-                        SizedBox(width: 8),
-                        Text(
-                          'Start',
-                          style: TextStyle(fontSize: 16, color: Colors.white),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => GoBoard(
+                                  size: boardSize,
+                                  duration: duration,
+                                ),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            'START GAME',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
+            ),
           );
         },
       );
