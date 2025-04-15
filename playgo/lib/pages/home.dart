@@ -134,20 +134,25 @@ class _GoGameHomePageState extends State<GoGameHomePage>{
           // Show the confirmation dialog
           final confirmed = await showDialog<bool>(
             context: context,
+            barrierDismissible: false,
             builder: (context) {
               return AlertDialog(
-                title: Text('Confirm Match', style: TextStyle(color: Colors.blue)),
-                content: Text('The receiver has accepted your match request. Do you want to proceed?'),
+                title: Text('Match Confirmed', 
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                content: Text('Your opponent has accepted the match! Ready to play?'),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(context, false),
-                    child: Text('Cancel', style: TextStyle(color: Colors.red)),
+                    child: Text('Cancel'),
                   ),
                   TextButton(
                     onPressed: () => Navigator.pop(context, true),
-                    child: Text('Confirm', style: TextStyle(color: Colors.blue)),
+                    child: Text('Play', style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 ],
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               );
             },
           );

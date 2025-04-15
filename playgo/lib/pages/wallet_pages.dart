@@ -17,13 +17,13 @@ class _WalletPage extends State<WalletPage> {
   String winning = '0.0';
   StreamSubscription<QuerySnapshot>? _confirmationListener;
   StreamSubscription<QuerySnapshot>? _countdownListener;
-  bool _isDialogShowing = false;
+  // bool _isDialogShowing = false;
 
   @override
   void initState() {
     _loadData();
-    _listenForConfirmation(); // Listen for confirmation
-    _listenForCountdown(); // Listen for countdown
+    // _listenForConfirmation(); // Listen for confirmation
+    // _listenForCountdown(); // Listen for countdown
     super.initState();
 
   }
@@ -35,121 +35,121 @@ class _WalletPage extends State<WalletPage> {
     super.dispose();
   }
 
-void _listenForConfirmation() {
-    _confirmationListener = FirebaseFirestore.instance
-        .collection('matchRequests')
-        .where('senderId', isEqualTo: userId) // Listen for requests where the current user is the sender
-        .snapshots()
-        .listen((snapshot) async {
-      if (snapshot.docs.isNotEmpty) {
-        final request = snapshot.docs.first;
-        final requestId = request.id;
+// void _listenForConfirmation() {
+//     _confirmationListener = FirebaseFirestore.instance
+//         .collection('matchRequests')
+//         .where('senderId', isEqualTo: userId) // Listen for requests where the current user is the sender
+//         .snapshots()
+//         .listen((snapshot) async {
+//       if (snapshot.docs.isNotEmpty) {
+//         final request = snapshot.docs.first;
+//         final requestId = request.id;
 
-        // Check if the confirmation dialog should be shown
-        final showConfirmation = request['showConfirmation'] ?? false;
+//         // Check if the confirmation dialog should be shown
+//         final showConfirmation = request['showConfirmation'] ?? false;
 
-        if (showConfirmation && !_isDialogShowing) {
-          _isDialogShowing = true;
+//         if (showConfirmation && !_isDialogShowing) {
+//           _isDialogShowing = true;
 
-          // Show the confirmation dialog
-          final confirmed = await showDialog<bool>(
-            context: context,
-            builder: (context) {
-              return AlertDialog(
-                title: Text('Confirm Match', style: TextStyle(color: Colors.blue)),
-                content: Text('The receiver has accepted your match request. Do you want to proceed?'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context, false),
-                    child: Text('Cancel', style: TextStyle(color: Colors.red)),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.pop(context, true),
-                    child: Text('Confirm', style: TextStyle(color: Colors.blue)),
-                  ),
-                ],
-              );
-            },
-          );
+//           // Show the confirmation dialog
+//           final confirmed = await showDialog<bool>(
+//             context: context,
+//             builder: (context) {
+//               return AlertDialog(
+//                 title: Text('Confirm Match', style: TextStyle(color: Colors.blue)),
+//                 content: Text('The receiver has accepted your match request. Do you want to proceed?'),
+//                 actions: [
+//                   TextButton(
+//                     onPressed: () => Navigator.pop(context, false),
+//                     child: Text('Cancel', style: TextStyle(color: Colors.red)),
+//                   ),
+//                   TextButton(
+//                     onPressed: () => Navigator.pop(context, true),
+//                     child: Text('Confirm', style: TextStyle(color: Colors.blue)),
+//                   ),
+//                 ],
+//               );
+//             },
+//           );
 
-          // Reset the `showConfirmation` field to prevent re-triggering
-          await FirebaseFirestore.instance
-              .collection('matchRequests')
-              .doc(requestId)
-              .update({'showConfirmation': false});
+//           // Reset the `showConfirmation` field to prevent re-triggering
+//           await FirebaseFirestore.instance
+//               .collection('matchRequests')
+//               .doc(requestId)
+//               .update({'showConfirmation': false});
 
-          _isDialogShowing = false;
+//           _isDialogShowing = false;
 
-          if (confirmed == true) {
-            // Update Firestore to indicate the sender has confirmed
-            await FirebaseFirestore.instance
-                .collection('matchRequests')
-                .doc(requestId)
-                .update({'senderConfirmed': true});
-          } else {
-            // Cancel the match request if the sender declines
-            await FirebaseFirestore.instance
-                .collection('matchRequests')
-                .doc(requestId)
-                .delete();
-          }
-        }
-      }
-    });
-  }
+//           if (confirmed == true) {
+//             // Update Firestore to indicate the sender has confirmed
+//             await FirebaseFirestore.instance
+//                 .collection('matchRequests')
+//                 .doc(requestId)
+//                 .update({'senderConfirmed': true});
+//           } else {
+//             // Cancel the match request if the sender declines
+//             await FirebaseFirestore.instance
+//                 .collection('matchRequests')
+//                 .doc(requestId)
+//                 .delete();
+//           }
+//         }
+//       }
+//     });
+//   }
 
-void _listenForCountdown() {
-    _countdownListener = FirebaseFirestore.instance
-        .collection('matchRequests')
-        .where('senderId', isEqualTo: userId) // Listen for requests where the current user is the sender
-        .snapshots()
-        .listen((snapshot) async {
-      if (snapshot.docs.isNotEmpty) {
-        final request = snapshot.docs.first;
-        final requestId = request.id;
+// void _listenForCountdown() {
+//     _countdownListener = FirebaseFirestore.instance
+//         .collection('matchRequests')
+//         .where('senderId', isEqualTo: userId) // Listen for requests where the current user is the sender
+//         .snapshots()
+//         .listen((snapshot) async {
+//       if (snapshot.docs.isNotEmpty) {
+//         final request = snapshot.docs.first;
+//         final requestId = request.id;
 
-        // Check if both users have confirmed
-        final senderConfirmed = request['senderConfirmed'] ?? false;
-        final receiverConfirmed = request['receiverConfirmed'] ?? false;
-        final entryPrice = request['entryPrice']??'0.0';
-        final duration = int.parse(request['duration']);
+//         // Check if both users have confirmed
+//         final senderConfirmed = request['senderConfirmed'] ?? false;
+//         final receiverConfirmed = request['receiverConfirmed'] ?? false;
+//         final entryPrice = request['entryPrice']??'0.0';
+//         final duration = int.parse(request['duration']);
 
-        final prizePool = double.parse(entryPrice) > 0.0?((double.parse(request['entryPrice'])*2)-(((double.parse(request['entryPrice']) * 2)/100)*2)).toString():"0.0";
+//         final prizePool = double.parse(entryPrice) > 0.0?((double.parse(request['entryPrice'])*2)-(((double.parse(request['entryPrice']) * 2)/100)*2)).toString():"0.0";
 
-        if (senderConfirmed && receiverConfirmed && !_isDialogShowing) {
-          _isDialogShowing = true;
+//         if (senderConfirmed && receiverConfirmed && !_isDialogShowing) {
+//           _isDialogShowing = true;
 
-          // Show the countdown dialog
-          showModalBottomSheet(
-            context: context,
-            isDismissible: false,
-            enableDrag: false,
-            isScrollControlled: true,
-            builder: (context) => PopScope(
-              canPop: false,
-              child:CountdownBottomDialogForGame(
-              time: duration,
-              entryPrice: request['entryPrice'] ?? '0.0',
-              prizePool:prizePool,
-              partnerId: request['receiverId'],
-              boardSize: request['boardSize'] ?? '9x9',
-            ),
-          ));
+//           // Show the countdown dialog
+//           showModalBottomSheet(
+//             context: context,
+//             isDismissible: false,
+//             enableDrag: false,
+//             isScrollControlled: true,
+//             builder: (context) => PopScope(
+//               canPop: false,
+//               child:CountdownBottomDialogForGame(
+//               time: duration,
+//               entryPrice: request['entryPrice'] ?? '0.0',
+//               prizePool:prizePool,
+//               partnerId: request['receiverId'],
+//               boardSize: request['boardSize'] ?? '9x9',
+//             ),
+//           ));
 
-          // Reset the confirmation fields to prevent re-triggering
-          await FirebaseFirestore.instance
-              .collection('matchRequests')
-              .doc(requestId)
-              .update({
-            'senderConfirmed': false,
-            'receiverConfirmed': false,
-          });
+//           // Reset the confirmation fields to prevent re-triggering
+//           await FirebaseFirestore.instance
+//               .collection('matchRequests')
+//               .doc(requestId)
+//               .update({
+//             'senderConfirmed': false,
+//             'receiverConfirmed': false,
+//           });
 
-          _isDialogShowing = false;
-        }
-      }
-    });
-  }
+//           _isDialogShowing = false;
+//         }
+//       }
+//     });
+//   }
   void _loadData() {
     if (!mounted) return;
     setState(() {

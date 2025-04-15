@@ -95,6 +95,7 @@ class _SearchPageState extends State<SearchPage> {
 
           final confirmed = await showDialog<bool>(
             context: context,
+            barrierDismissible: false,
             builder: (context) {
               return AlertDialog(
                 title: Text('Match Confirmed', 
