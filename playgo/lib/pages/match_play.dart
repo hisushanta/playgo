@@ -550,12 +550,17 @@ void _listenToGameUpdates() {
         } else {
           whiteMissedTurns++;
         }
+        _blackPassed = false;
+        _whitePassed = false;
+
 
         // Switch turns without resetting timer
         await gameDoc.update({
           'currentTurn': nextTurn,
           'blackMissedTurns': blackMissedTurns,
           'whiteMissedTurns': whiteMissedTurns,
+          'blackPassed': false,    // ADD THIS LINE
+          'whitePassed': false,    // ADD THIS LINE
         });
 
         // Check if the game should end due to missed turns

@@ -786,7 +786,7 @@ class _CountdownBottomDialogState extends State<CountdownBottomDialog> with Sing
       context,
       MaterialPageRoute(
         builder: (context) => GoBoardMatch(
-          size: 13,
+          size: 9,
           gameId: partner['gameId'],
           playerId: userId,
           totalGameTime: widget.time,
