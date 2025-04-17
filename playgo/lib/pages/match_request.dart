@@ -115,26 +115,76 @@ class _MatchRequestPageState extends State<MatchRequestPage> {
 
         // Show confirmation dialog for both users
         final confirmed = await showDialog<bool>(
-          context: context,
-          builder: (context) {
-            return AlertDialog(
-              title: Text('Confirm Match', style: TextStyle(color: Colors.blue)),
-              content: Text(isSender
-                  ? 'The receiver has accepted your match request. Do you want to proceed?'
-                  : 'You have accepted the match request. Waiting for the sender to confirm...'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: Text('Cancel', style: TextStyle(color: Colors.red)),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  child: Text('Confirm', style: TextStyle(color: Colors.blue)),
-                ),
-              ],
-            );
-          },
-        );
+                                    context: context,
+                                    builder: (context) {
+                                      return AlertDialog(
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(16.0),
+                                        ),
+                                        elevation: 8,
+                                        title: Text(
+                                          'Confirm Match',
+                                          style: TextStyle(
+                                            color: Colors.blue.shade800,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 20,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                        content: Padding(
+                                          padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                          child: Text(
+                                            isSender
+                                                ? 'The receiver has accepted your match request. Do you want to proceed?'
+                                                : 'You have accepted the match request. Waiting for the sender to confirm...',
+                                            style: TextStyle(
+                                              color: Colors.grey.shade700,
+                                              fontSize: 16,
+                                            ),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ),
+                                        actionsAlignment: MainAxisAlignment.spaceAround,
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(context, false),
+                                            style: TextButton.styleFrom(
+                                              foregroundColor: Colors.red.shade600,
+                                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(8.0),
+                                              ),
+                                            ),
+                                            child: const Text(
+                                              'Cancel',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 16,
+                                              ),
+                                            ),
+                                          ),
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(context, true),
+                                            style: TextButton.styleFrom(
+                                              foregroundColor: Colors.white,
+                                              backgroundColor: Colors.blue.shade600,
+                                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(8.0),
+                                              ),
+                                            ),
+                                            child: const Text(
+                                              'Confirm',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 16,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  );
 
         // Reset the flag after the dialog is closed
         _isDialogShowing = false;
