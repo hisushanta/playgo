@@ -62,7 +62,9 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           
           Center( 
-          child: Column(
+          child: Container(
+            margin: const EdgeInsets.all(20.0),
+            child: Column(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
            const SizedBox(height: 20),
@@ -128,7 +130,8 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ],
           ),
-          ),    
+          ), 
+          )   
         ],  
       ),
     );
