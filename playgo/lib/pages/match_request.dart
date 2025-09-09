@@ -75,7 +75,7 @@ class _MatchRequestPageState extends State<MatchRequestPage> {
       final duration = int.parse(snapshot['duration']);
       final entryPrice = snapshot['entryPrice']??'0.0';
       final boardSize = snapshot['boardSize'];
-      final prizePool = double.parse(entryPrice) > 0.0?((double.parse(snapshot['entryPrice'])*2)-(((double.parse(snapshot['entryPrice']) * 2)/100)*2)).toString():"0.0";
+      final prizePool = double.parse(entryPrice) > 0.0?((double.parse(snapshot['entryPrice'])*2)).toString():"0.0";
       // Check if both users have confirmed
       if (senderConfirmed && receiverConfirmed) {
 
@@ -435,10 +435,10 @@ Widget _buildMatchRequestCard(
           /// Entry Price
           Row(
             children: [
-              Icon(Icons.currency_rupee, color: Colors.green, size: 20),
+              Icon(Icons.star, color: Colors.green, size: 20),
               SizedBox(width: 5),
               Text(
-                "Entry Price:",
+                "Entry Point:",
                 style: GoogleFonts.poppins(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,

@@ -157,7 +157,7 @@ class _SearchPageState extends State<SearchPage> {
         final entryPrice = request['entryPrice']?.toString() ?? '0.0';
         final duration = int.tryParse(request['duration']?.toString() ?? '0') ?? 0;
         final prizePool = double.parse(entryPrice) > 0.0
-          ? ((double.parse(entryPrice)*2)-(((double.parse(entryPrice) * 2)/100)*2)).toStringAsFixed(2)
+          ? ((double.parse(entryPrice)*2)).toStringAsFixed(2)
           : "0.0";
 
         if (senderConfirmed && receiverConfirmed && !_isDialogShowing) {
@@ -243,6 +243,7 @@ class _SearchPageState extends State<SearchPage> {
 
   Future<void> _sendMatchRequest(String entryPrice, String duration) async {
     FocusScope.of(context).unfocus();
+    debugPrint('Found User: $_foundUser');
     if (_foundUser == null) return;
     
     final currentFund = double.tryParse(info!.userProfile[userId]!['fund']?.toString() ?? '0.0') ?? 0.0;
@@ -495,10 +496,10 @@ class _SearchPageState extends State<SearchPage> {
               Divider(height: 24, color: Colors.grey[200]),
               
               _buildEditableField(
-                label: "Entry Fee",
+                label: "Entry Point",
                 controller: _entryPriceController,
                 focusNode: _entryPriceFocusNode,
-                prefixText: "₹",
+                prefixText: "⭐",
                 keyboardType: TextInputType.numberWithOptions(decimal: true),
               ),
               

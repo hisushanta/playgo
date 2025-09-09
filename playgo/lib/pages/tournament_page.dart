@@ -177,12 +177,12 @@ class GameTournamentPage extends State<TournamentPage> {
                 children: [
                   DropdownButton<String>(
                     hint: Text(selectedSortOption == null
-                        ? "Sort by Price"
+                        ? "Sort by Point"
                         : selectedSortOption == "low_to_high"
                             ? "Price: Low to High"
                             : selectedSortOption == "high_to_low"
                                 ? "Price: High to Low"
-                                : "Sort by Price"), // Display based on current option
+                                : "Sort by Point"), // Display based on current option
                     value: selectedSortOption,
                     items: [
                       DropdownMenuItem(
@@ -301,18 +301,19 @@ class GameTournamentPage extends State<TournamentPage> {
                     Text('Prize Pool', style: TextStyle(fontSize: 12, color: Colors.grey)),
                     Row(
                       children: [
+                        Icon(Icons.star, color: Colors.orangeAccent),
                         Text(
                           prizePools,
                           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                         ),
-                        Icon(Icons.arrow_drop_down, color: Colors.black),
+                        
                       ],
                     ),
                   ],
                 ),
                 Column(
                   children: [
-                    Text('ENTRY',
+                    Text('Entry Point',
                         style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey,
@@ -354,7 +355,7 @@ class GameTournamentPage extends State<TournamentPage> {
                                     SizedBox(height: 15),
                                     // Title
                                     Text(
-                                      "Confirm Payment",
+                                      "Confirm To Play",
                                       style: TextStyle(
                                         fontSize: 20,
                                         fontWeight: FontWeight.bold,
@@ -390,7 +391,7 @@ class GameTournamentPage extends State<TournamentPage> {
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
                                           Text(
-                                            "Entry Fee",
+                                            "Entry Point",
                                             style: TextStyle(
                                               fontSize: 16,
                                               fontWeight: FontWeight.w500,
@@ -398,7 +399,7 @@ class GameTournamentPage extends State<TournamentPage> {
                                             ),
                                           ),
                                           Text(
-                                            "₹$entryPrice",
+                                            entryPrice,
                                             style: TextStyle(
                                               fontSize: 18,
                                               fontWeight: FontWeight.bold,
@@ -440,7 +441,7 @@ class GameTournamentPage extends State<TournamentPage> {
                                           ScaffoldMessenger.of(context).showSnackBar(
                                             SnackBar(
                                               content: Text(
-                                                'Insufficient Balance, Please Add Money And Then Play Game💵',
+                                                'Insufficient Point, Please Add Money And Then Play Game💵',
                                                 style: TextStyle(
                                                   color: Colors.white,
                                                   fontWeight: FontWeight.bold,

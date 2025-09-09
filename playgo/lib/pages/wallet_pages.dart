@@ -1,10 +1,5 @@
-import 'dart:async';
-
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:playgo/main.dart';
-import 'package:playgo/pages/fund_page.dart';
-import 'home.dart';
 
 class WalletPage extends StatefulWidget {
   @override
@@ -12,151 +7,39 @@ class WalletPage extends StatefulWidget {
 }
 
 class _WalletPage extends State<WalletPage> {
-  String fundBalance = "0.0";
-  String deposit = "0.0";
-  String winning = '0.0';
-  StreamSubscription<QuerySnapshot>? _confirmationListener;
-  StreamSubscription<QuerySnapshot>? _countdownListener;
-  // bool _isDialogShowing = false;
+  String totalPoints = "0";
+  String winningsPoints = "0";
+  String rewardsPoints = "0";
 
   @override
   void initState() {
     _loadData();
-    // _listenForConfirmation(); // Listen for confirmation
-    // _listenForCountdown(); // Listen for countdown
     super.initState();
-
   }
 
-  @override
-  void dispose(){
-    _confirmationListener?.cancel();
-    _countdownListener?.cancel();
-    super.dispose();
-  }
-
-// void _listenForConfirmation() {
-//     _confirmationListener = FirebaseFirestore.instance
-//         .collection('matchRequests')
-//         .where('senderId', isEqualTo: userId) // Listen for requests where the current user is the sender
-//         .snapshots()
-//         .listen((snapshot) async {
-//       if (snapshot.docs.isNotEmpty) {
-//         final request = snapshot.docs.first;
-//         final requestId = request.id;
-
-//         // Check if the confirmation dialog should be shown
-//         final showConfirmation = request['showConfirmation'] ?? false;
-
-//         if (showConfirmation && !_isDialogShowing) {
-//           _isDialogShowing = true;
-
-//           // Show the confirmation dialog
-//           final confirmed = await showDialog<bool>(
-//             context: context,
-//             builder: (context) {
-//               return AlertDialog(
-//                 title: Text('Confirm Match', style: TextStyle(color: Colors.blue)),
-//                 content: Text('The receiver has accepted your match request. Do you want to proceed?'),
-//                 actions: [
-//                   TextButton(
-//                     onPressed: () => Navigator.pop(context, false),
-//                     child: Text('Cancel', style: TextStyle(color: Colors.red)),
-//                   ),
-//                   TextButton(
-//                     onPressed: () => Navigator.pop(context, true),
-//                     child: Text('Confirm', style: TextStyle(color: Colors.blue)),
-//                   ),
-//                 ],
-//               );
-//             },
-//           );
-
-//           // Reset the `showConfirmation` field to prevent re-triggering
-//           await FirebaseFirestore.instance
-//               .collection('matchRequests')
-//               .doc(requestId)
-//               .update({'showConfirmation': false});
-
-//           _isDialogShowing = false;
-
-//           if (confirmed == true) {
-//             // Update Firestore to indicate the sender has confirmed
-//             await FirebaseFirestore.instance
-//                 .collection('matchRequests')
-//                 .doc(requestId)
-//                 .update({'senderConfirmed': true});
-//           } else {
-//             // Cancel the match request if the sender declines
-//             await FirebaseFirestore.instance
-//                 .collection('matchRequests')
-//                 .doc(requestId)
-//                 .delete();
-//           }
-//         }
-//       }
-//     });
-//   }
-
-// void _listenForCountdown() {
-//     _countdownListener = FirebaseFirestore.instance
-//         .collection('matchRequests')
-//         .where('senderId', isEqualTo: userId) // Listen for requests where the current user is the sender
-//         .snapshots()
-//         .listen((snapshot) async {
-//       if (snapshot.docs.isNotEmpty) {
-//         final request = snapshot.docs.first;
-//         final requestId = request.id;
-
-//         // Check if both users have confirmed
-//         final senderConfirmed = request['senderConfirmed'] ?? false;
-//         final receiverConfirmed = request['receiverConfirmed'] ?? false;
-//         final entryPrice = request['entryPrice']??'0.0';
-//         final duration = int.parse(request['duration']);
-
-//         final prizePool = double.parse(entryPrice) > 0.0?((double.parse(request['entryPrice'])*2)-(((double.parse(request['entryPrice']) * 2)/100)*2)).toString():"0.0";
-
-//         if (senderConfirmed && receiverConfirmed && !_isDialogShowing) {
-//           _isDialogShowing = true;
-
-//           // Show the countdown dialog
-//           showModalBottomSheet(
-//             context: context,
-//             isDismissible: false,
-//             enableDrag: false,
-//             isScrollControlled: true,
-//             builder: (context) => PopScope(
-//               canPop: false,
-//               child:CountdownBottomDialogForGame(
-//               time: duration,
-//               entryPrice: request['entryPrice'] ?? '0.0',
-//               prizePool:prizePool,
-//               partnerId: request['receiverId'],
-//               boardSize: request['boardSize'] ?? '9x9',
-//             ),
-//           ));
-
-//           // Reset the confirmation fields to prevent re-triggering
-//           await FirebaseFirestore.instance
-//               .collection('matchRequests')
-//               .doc(requestId)
-//               .update({
-//             'senderConfirmed': false,
-//             'receiverConfirmed': false,
-//           });
-
-//           _isDialogShowing = false;
-//         }
-//       }
-//     });
-//   }
   void _loadData() {
     if (!mounted) return;
     setState(() {
-      fundBalance = info?.userProfile[info?.uuid]?['fund'] ?? '0.0'; // Provide a default value
-      deposit = info?.userProfile[info?.uuid]?['deposit'] ?? '0.0'; // Provide a default value
-      winning = info?.userProfile[info?.uuid]?['winning'] ?? '0.0'; // Provide a default value
+      // Load points data from user profile
+      totalPoints = info?.userProfile[info?.uuid]?['fund'] ?? '0';
+      winningsPoints = info?.userProfile[info?.uuid]?['winning'] ?? '0';
+      rewardsPoints = info?.userProfile[info?.uuid]?['rewards'] ?? '0';
     });
+  }
+
+  // Helper function to format points with proper decimal handling
+  String _formatPoints(String points) {
+    try {
+      double value = double.parse(points);
+      // If it's a whole number, show without decimals
+      if (value == value.truncateToDouble()) {
+        return value.truncate().toString();
+      }
+      // Otherwise show with up to 2 decimal places
+      return value.toStringAsFixed(2);
+    } catch (e) {
+      return points; // Return original if parsing fails
+    }
   }
 
   @override
@@ -164,7 +47,7 @@ class _WalletPage extends State<WalletPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Wallet',
+          'My Points',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.black),
         ),
         leading: IconButton(
@@ -175,177 +58,313 @@ class _WalletPage extends State<WalletPage> {
         ),
         backgroundColor: Colors.white,
         elevation: 0,
+        centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        child: Container(
-          color: Colors.grey[100],
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              _buildBalanceCard(),
-              SizedBox(height: 16),
-              _buildSection('Deposits', '₹${double.parse(deposit).toStringAsFixed(2)}', 'Add Cash', Colors.green, Icons.add, context),
-              SizedBox(height: 16),
-              _buildSection('Winnings', '₹${double.parse(winning).toStringAsFixed(2)}', 'Withdraw', Colors.orange, Icons.arrow_downward, context),
-              SizedBox(height: 16),
-              _buildInfoSection('Cashback Reward', '₹1.32', 'CASHBACK DETAILS'),
-              SizedBox(height: 16),
-              _buildInfoSection('Bonus Reward', '₹0', 'BONUS DETAILS'),
-              SizedBox(height: 16),
-              _buildOptions('Saved Payment Modes'),
-              SizedBox(height: 8),
-              _buildOptions('Transaction History'),
-            ],
-          ),
+      body: Container(
+        color: Colors.grey[50],
+        child: Column(
+          children: [
+            // Points balance header
+            _buildPointsHeader(),
+            
+            // Points summary
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    _buildPointsSummary(),
+                    SizedBox(height: 24),
+                    _buildRewardsSection(),
+                    SizedBox(height: 24),
+                    _buildPointsInfo(),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildBalanceCard() {
+  Widget _buildPointsHeader() {
     return Container(
-      padding: EdgeInsets.all(16.0),
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(vertical: 30, horizontal: 20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.3),
-            blurRadius: 6,
-            offset: Offset(0, 3),
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 10,
+            offset: Offset(0, 5),
           ),
         ],
       ),
       child: Column(
         children: [
+          Text(
+            'Total Points ⭐',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            _formatPoints(totalPoints),
+            style: TextStyle(
+              fontSize: 42,
+              fontWeight: FontWeight.bold,
+              color: Colors.blue[800],
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Available to use in games',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[600],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPointsSummary() {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Total Points
+          _buildPointsItem(
+            title: 'Total Points',
+            points: _formatPoints(totalPoints),
+            icon: Icons.account_balance_wallet,
+            color: Colors.blue,
+          ),
+          Divider(height: 24),
+          // Winnings Points
+          _buildPointsItem(
+            title: 'Winnings Points',
+            points: _formatPoints(winningsPoints),
+            icon: Icons.emoji_events,
+            color: Colors.orange,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPointsItem({String? title, String? points, IconData? icon, Color? color}) {
+    return Row(
+      children: [
+        Container(
+          padding: EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color?.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: color, size: 22),
+        ),
+        SizedBox(width: 16),
+        Expanded(
+          child: Text(
+            title!,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        Text(
+          points!,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.blue[800],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRewardsSection() {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Total Balance',
-                style: TextStyle(fontSize: 14, color: Colors.black54),
+                'Rewards',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              Icon(Icons.info_outline, size: 16, color: Colors.black54),
+              TextButton(
+                onPressed: () {
+                  // Show rewards details
+                  _showRewardsDetails(context);
+                },
+                child: Text(
+                  'DETAILS',
+                  style: TextStyle(
+                    color: Colors.blue,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
             ],
           ),
-          SizedBox(height: 8),
+          SizedBox(height: 16),
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.purple.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.card_giftcard, color: Colors.purple, size: 22),
+              ),
+              SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  'Available Rewards',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              Text(
+                _formatPoints(rewardsPoints),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.purple[800],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPointsInfo() {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           Text(
-            '₹${double.parse(fundBalance).toStringAsFixed(2)}',
-            style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.black),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSection(String title, String amount, String actionText, Color buttonColor, IconData icon, BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.3),
-            blurRadius: 6,
-            offset: Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: TextStyle(fontSize: 14, color: Colors.black54)),
-              SizedBox(height: 4),
-              Text(amount, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          ElevatedButton.icon(
-            onPressed: () async {
-              if (actionText == 'Add Cash') {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => AddCashPage()),
-                );
-                _loadData(); // Reload data after returning from AddCashPage
-              }
-            },
-            icon: Icon(icon, color: Colors.white, size: 16),
-            label: Text(actionText),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: buttonColor,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
+            'About Points',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
             ),
           ),
+          SizedBox(height: 12),
+          _buildInfoItem('Total Points: Points available for use in games'),
+          SizedBox(height: 8),
+          _buildInfoItem('Winnings Points: Points earned from game victories'),
+          SizedBox(height: 8),
+          _buildInfoItem('Rewards: Special points from promotions and events'),
         ],
       ),
     );
   }
 
-  Widget _buildInfoSection(String title, String amount, String actionText) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.3),
-            blurRadius: 6,
-            offset: Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: TextStyle(fontSize: 14, color: Colors.black54)),
-              SizedBox(height: 4),
-              Text(amount, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          TextButton(
-            onPressed: () {},
-            child: Text(
-              actionText,
-              style: TextStyle(color: Colors.deepPurple, fontWeight: FontWeight.w500),
+  Widget _buildInfoItem(String text) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(Icons.circle, size: 8, color: Colors.grey),
+        SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[700],
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
-  Widget _buildOptions(String title) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.3),
-            blurRadius: 6,
-            offset: Offset(0, 3),
+  void _showRewardsDetails(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Rewards Details'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: [
+                Text('Your rewards points: ${_formatPoints(rewardsPoints)}'),
+                SizedBox(height: 16),
+                Text('Rewards points are earned through:'),
+                SizedBox(height: 8),
+                Text('• Special promotions'),
+                Text('• Daily check-ins'),
+                Text('• Event participation'),
+                Text('• Referral bonuses'),
+              ],
+            ),
           ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-          Icon(Icons.chevron_right, color: Colors.black54),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('OK'),
+            ),
+          ],
+        );
+      },
     );
   }
 }

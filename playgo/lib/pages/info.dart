@@ -104,6 +104,7 @@ class ItemInfo{
           'fund': userProfileData['fund'],
           'deposit': userProfileData['deposit'],
           'winning': userProfileData['winning'],
+          'rewards': userProfileData['rewards'],
           'status': userProfileData['status'],
           'currentEntryPrice':userProfileData['currentEntryPrice'],
         };
@@ -193,6 +194,7 @@ class ItemInfo{
               'fund': snapshot['fund'],
               'deposit': snapshot['deposit'],
               'winning': snapshot['winning'],
+              'rewards': snapshot['rewards'],
               'status': snapshot['status'],
               'currentEntryPrice': snapshot['currentEntryPrice'],
             };
@@ -244,7 +246,7 @@ class ItemInfo{
         return false;
       }
   }
-  Future<void> updateUserProfile(String username, String profileImage,String email,String fund,[String deposit = '0.0',String winning = '0.0',String gameStatus = "DeActive",String currentEntryPrice="0.0"]) async {
+  Future<void> updateUserProfile(String username, String profileImage,String email,String fund,[String deposit = '0.0',String winning = '0.0',String rewards = '0.0',String gameStatus = "DeActive",String currentEntryPrice="0.0"]) async {
     if (uuid != null) {
       var userRef = _firestore.collection('users').doc(uuid);
       await userRef.set({
@@ -254,6 +256,7 @@ class ItemInfo{
         'fund':fund,
         'deposit':deposit,
         'winning':winning,
+        'rewards':rewards,
         'status':gameStatus,
         'currentEntryPrice':currentEntryPrice
       }, SetOptions(merge: true));
@@ -265,6 +268,7 @@ class ItemInfo{
         'fund': fund,
         'deposit': deposit,
         'winning':winning,
+        'rewards':rewards,
         'status':gameStatus,
         'currentEntryPrice':currentEntryPrice
       };
