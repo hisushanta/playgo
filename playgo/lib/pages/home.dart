@@ -199,7 +199,7 @@ void _listenForCountdown() {
         final entryPrice = request['entryPrice']??'0.0';
         final duration = int.parse(request['duration']);
 
-        final prizePool = double.parse(entryPrice) > 0.0?((double.parse(request['entryPrice'])*2)-(((double.parse(request['entryPrice']) * 2)/100)*2)).toString():"0.0";
+        final prizePool = double.parse(entryPrice) > 0.0?((double.parse(request['entryPrice'])*2)).toString():"0.0";
 
         if (senderConfirmed && receiverConfirmed && !_isDialogShowing) {
           _isDialogShowing = true;
@@ -758,7 +758,7 @@ void _listenForCountdown() {
                 borderRadius: BorderRadius.circular(20),
               ),
             ),
-            child: Text('₹${double.parse(fundBalance).toStringAsFixed(2)}'),
+            child: Text('⭐ ${double.parse(fundBalance).toStringAsFixed(2)}'),
           ),
           SizedBox(width: 8), // Reduced space between buttons
           // Wallet Button

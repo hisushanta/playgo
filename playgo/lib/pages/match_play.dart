@@ -587,7 +587,7 @@ void _listenToGameUpdates() {
             : (player1Stone == 'white' ? player1Id! : player2Id!);
       if (winnerId == userId){
             await info!.updateUserFund(userId, double.parse(widget.prizePool));
-            await info!.updateUserWinning(userId, double.parse(widget.prizePool));
+            await info!.updateUserWinning(userId, double.parse(widget.prizePool)/2);
       }
     } 
       else if (whiteMissedTurns >= 3) {
@@ -597,7 +597,7 @@ void _listenToGameUpdates() {
             : (player1Stone == 'white' ? player1Id! : player2Id!);
       if (winnerId == userId){
             await info!.updateUserFund(userId, double.parse(widget.prizePool));
-            await info!.updateUserWinning(userId, double.parse(widget.prizePool));
+            await info!.updateUserWinning(userId, double.parse(widget.prizePool)/2);
 
         }
     } else {
@@ -613,7 +613,7 @@ void _listenToGameUpdates() {
             : (player1Stone == 'white' ? player1Id! : player2Id!);
         if (winnerId == userId){
             await info!.updateUserFund(userId, double.parse(widget.prizePool));
-            await info!.updateUserWinning(userId, double.parse(widget.prizePool));
+            await info!.updateUserWinning(userId, double.parse(widget.prizePool)/2);
 
         }
       }
@@ -1063,7 +1063,7 @@ void _listenToGameUpdates() {
       // Determine winner and distribute prize
       String winnerId = widget.playerId == player1Id ? player2Id! : player1Id!;
       await info!.updateUserFund(winnerId, double.parse(widget.prizePool));
-      await info!.updateUserWinning(winnerId, double.parse(widget.prizePool));
+      await info!.updateUserWinning(winnerId, double.parse(widget.prizePool)/2);
 
       info!.updateGameStatus("DeActive",player1Id!,"0.0");
       info!.updateGameStatus("DeActive", player2Id!,"0.0");
@@ -1489,7 +1489,7 @@ Widget build(BuildContext context) {
                   ),
                 ),
                 Text(
-                  '₹${widget.prizePool}',
+                  '⭐${widget.prizePool}',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 18,
