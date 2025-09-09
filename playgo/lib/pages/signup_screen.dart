@@ -164,7 +164,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         }
         if (checkWhat) {
           info = ItemInfo(snapshot.data!.uid);
-          info!.updateUserProfile(usernameController.text, 'assets/mainIcon.png', emailController.text, "0");
+          info!.updateUserProfile( usernameController.text,  'assets/mainIcon.png', emailController.text,"500", '0.0','0.0','500');
           return Home();
         } else {
           return SignUpScreen();

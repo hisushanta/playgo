@@ -46,18 +46,28 @@ class _WalletPage extends State<WalletPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'My Points',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.black),
-        ),
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
         backgroundColor: Colors.white,
         elevation: 0,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(
+              'assets/homeIcon.png',
+              width: 24,
+              height: 24,
+            ),
+            const SizedBox(width: 4),
+            const Text(
+              "Play Go",
+              style: TextStyle(
+                fontStyle: FontStyle.italic,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+          ],
+        ),
         centerTitle: true,
       ),
       body: Container(
