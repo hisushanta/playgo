@@ -24,7 +24,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
   String? _profileImagePath;
   bool _isEditing = false;
   late TextEditingController _usernameController;
-  late TextEditingController _emailController;
 
   String _fundBalance = '0'; // Fund balance variable
   StreamSubscription<QuerySnapshot>? _confirmationListener;
@@ -34,14 +33,12 @@ class _UserProfilePageState extends State<UserProfilePage> {
   void initState() {
     super.initState();
     _usernameController = TextEditingController();
-    _emailController = TextEditingController();
     _initializeProfile();
   }
 
   @override
   void dispose() {
     _usernameController.dispose();
-    _emailController.dispose();
     _confirmationListener?.cancel();
     _countdownListener?.cancel();
 
@@ -58,7 +55,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
           _profileImagePath = "assets/homeIcon.png";
         }
         _usernameController.text = info!.userProfile[info!.uuid]!['username'] ?? '';
-        _emailController.text = info!.userProfile[info!.uuid]!['email'] ?? '';
         _fundBalance = info!.userProfile[info!.uuid]!['fund'] ?? '0';
 
 
@@ -72,7 +68,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
               _profileImagePath = "assets/homeIcon.png";
             }
             _usernameController.text = info!.userProfile[info!.uuid]!['username'] ?? '';
-            _emailController.text = info!.userProfile[info!.uuid]!['email'] ?? '';
 
             setState(() {});
           }
@@ -96,7 +91,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
             info!.updateUserProfile(
               _usernameController.text,
               _profileImagePath!,
-              _emailController.text,
+              info!.userProfile[info!.uuid]!['email'],
               info!.userProfile[info!.uuid]!['fund'],
             );
             imageCache.clear();
@@ -171,7 +166,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
       info!.updateUserProfile(
         _usernameController.text,
         _profileImagePath!,
-        _emailController.text,
+        info!.userProfile[info!.uuid]!['email'],
         info!.userProfile[info!.uuid]!['fund']
       );
 
@@ -300,7 +295,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             const Text(
-                              "Fund Balance",
+                              "Total Points ⭐",
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -308,7 +303,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                               ),
                             ),
                             Text(
-                              "₹${double.parse(_fundBalance).toStringAsFixed(2)}",
+                              double.parse(_fundBalance).toStringAsFixed(1),
                               style: const TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
@@ -331,19 +326,9 @@ class _UserProfilePageState extends State<UserProfilePage> {
                     
                    
                     const SizedBox(height: 10),
-                    _isEditing
-                        ? TextField(
-                            controller: _emailController,
-                            decoration: const InputDecoration(
-                              labelText: 'Email',
-                            ),
-                            keyboardType: TextInputType.emailAddress,
-                          )
-                        : _buildCustomDisplayTile(
+                    _buildCustomDisplayTile(
                             title: 'Email',
-                            content: _emailController.text.isEmpty
-                                ? 'Email not provided'
-                                : _emailController.text,
+                            content: info!.userProfile[info!.uuid]!['email'],
                             icon: Icons.email,
                           ),
 
