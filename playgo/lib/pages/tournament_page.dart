@@ -139,7 +139,7 @@ class GameTournamentPage extends State<TournamentPage> {
                 borderRadius: BorderRadius.circular(20),
               ),
             ),
-            child: Text('₹${double.parse(fundBalance).toStringAsFixed(2)}'),
+            child: Text('⭐${double.parse(fundBalance).toStringAsFixed(2)}'),
           ),
           SizedBox(width: 8), // Reduced space between buttons
           // Wallet Button

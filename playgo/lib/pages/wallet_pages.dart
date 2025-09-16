@@ -72,14 +72,15 @@ class _WalletPage extends State<WalletPage> {
       ),
       body: Container(
         color: Colors.grey[50],
-        child: Column(
-          children: [
-            // Points balance header
-            _buildPointsHeader(),
-            
-            // Points summary
-            Expanded(
-              child: SingleChildScrollView(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.zero,
+          child: Column(
+            children: [
+              // Points balance header
+              _buildPointsHeader(),
+              
+              // Points summary and other content
+              Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   children: [
@@ -88,11 +89,12 @@ class _WalletPage extends State<WalletPage> {
                     _buildRewardsSection(),
                     SizedBox(height: 24),
                     _buildPointsInfo(),
+                    SizedBox(height: 16), // Extra space at bottom for better scrolling
                   ],
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
