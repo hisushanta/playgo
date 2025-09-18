@@ -13,6 +13,7 @@ import 'aiPlay.dart';
 import 'wallet_pages.dart';
 import 'search_user.dart';
 import 'match_request.dart';
+import 'package:flutter/services.dart';
 
 final userId = FirebaseAuth.instance.currentUser!.uid;
 
@@ -104,6 +105,27 @@ class _GoGameHomePageState extends State<GoGameHomePage>{
     _refreshTimer = Timer.periodic(Duration(seconds: 3), (_) => _loadData());
     _listenForConfirmation(); // Listen for confirmation
     _listenForCountdown(); // Listen for countdown
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);  // to only hide the status bar
+
+    // Delay the orientation logic until after the first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final double shortestSide = MediaQuery.of(context).size.shortestSide;
+
+      if (shortestSide < 600) {
+        // Phone: Lock to portrait mode
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.portraitUp,
+        ]);
+      } else {
+        // Tablet: Allow both portrait and landscape modes
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.portraitUp,
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+        ]);
+      }
+    });
+
 
   }
 
