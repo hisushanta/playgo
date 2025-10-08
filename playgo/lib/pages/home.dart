@@ -102,6 +102,7 @@ class _GoGameHomePageState extends State<GoGameHomePage>{
   void initState() {
     super.initState();
     _loadData();
+    _checkAndAddDailyFunds(); // Check and add daily funds
     _refreshTimer = Timer.periodic(Duration(seconds: 3), (_) => _loadData());
     _listenForConfirmation(); // Listen for confirmation
     _listenForCountdown(); // Listen for countdown
@@ -136,6 +137,57 @@ class _GoGameHomePageState extends State<GoGameHomePage>{
     _countdownListener?.cancel();
     super.dispose();
   }
+
+// Check and add daily funds if needed using Firebase
+  Future<void> _checkAndAddDailyFunds() async {
+    try {
+      final userDoc = FirebaseFirestore.instance.collection('users').doc(userId);
+      final userSnapshot = await userDoc.get();
+      
+      if (!userSnapshot.exists) return;
+      
+      final userData = userSnapshot.data() as Map<String, dynamic>;
+      final lastFundDate = userData['lastFundDate'] as String?;
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      
+      // Check if we already added funds today
+      if (lastFundDate != null) {
+        final lastFundDateParsed = DateTime.parse(lastFundDate);
+        if (lastFundDateParsed.isAtSameMomentAs(today)) {
+          return; // Already added funds today
+        }
+      }
+      
+      // Check if user has less than 500 funds
+      final currentFunds = double.tryParse(userData['fund'] ?? '0.0') ?? 0.0;
+      if (currentFunds < 500) {
+        // Add 500 funds
+        final newFunds = 500.0;
+        await info!.updateUserFund(userId, newFunds, "add");
+        await info!.updateUserRewards(userId, newFunds);
+        
+        // Update last fund date in Firebase
+        await userDoc.update({
+          'lastFundDate': today.toString(),
+        });
+        
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Daily 500 points added!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        
+        // Reload data
+        _loadData();
+      }
+    } catch (e) {
+      print('Error adding daily funds: $e');
+    }
+  }
+
   
   void _listenForConfirmation() {
     _confirmationListener = FirebaseFirestore.instance
