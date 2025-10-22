@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:playgo/main.dart';
 import 'package:playgo/pages/about_pages.dart';
+import 'package:playgo/pages/go_ai_game_page.dart';
 import 'package:playgo/pages/wallet_pages.dart';
 import 'fund_page.dart';
 import 'home.dart';
@@ -657,11 +658,33 @@ class _CountdownBottomDialogState extends State<CountdownBottomDialog> with Sing
       _isSearching = false;
     });
     info!.updateGameStatus("DeActive", userId,"0.0");
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('No partner found. Please try again later.')),
-    );
+        // Automatically start AI game without showing any dialog
+    Navigator.pop(context); // Close the countdown dialog
+    _startAIGame();
+
+    // Navigator.pop(context);
+    // ScaffoldMessenger.of(context).showSnackBar(
+    //   SnackBar(content: Text('No partner found. Please try again later.')),
+    // );
   }
+
+  void _startAIGame() {
+    // Navigate to the new AI game page
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => GoAIMatchPage(
+          size: 9,
+          totalGameTime: widget.time,
+          entryPrice: widget.entryPrice,
+          prizePool: widget.prizePool,
+        ),
+      ),
+    ).then((_) {
+      widget.updateFund();
+    });
+  }
+
 
   void _navigateToMatchBoard(Map<String, dynamic> partner) {
     Navigator.push(
